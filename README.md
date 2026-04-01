@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 密码管理器（Web版）
 
-## Getting Started
 
-First, run the development server:
+### 1.1 背景
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+你正在开发一个**Web版密码管理器**。用户可以存储网站密码、按分类管理、搜索过滤、生成强密码。
+架构设计需要考虑扩展性, 比如多端, 多场景.
+必须符合零信任架构 & 符合端到端的密码安全标准, 想想 1password 怎么做, 想想 icloud 端到端数据加密怎么做.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 1.2 技术要求
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- 前端框架：React19
+- 语言：TypeScript
+- 后端：Next.js16
+- 数据存储：sqlite + prisma 
 
-## Learn More
+### 开发规范
+- 必须遵循开放封闭原则
+- 必须遵循最小化修改原则
+- 必须全量中文注释
+- 写代码前需要先列出计划与我确认
+- 每一次的代码生成后都需要执行 lint 并修复错误
 
-To learn more about Next.js, take a look at the following resources:
+## 二、功能需求
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 2.1 密码存储
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| 优先级 | 功能 | 说明 |
+|--------|------|------|
+| **P0** | 添加密码 | 填写网站名称、用户名、密码、分类后保存 |
+| **P0** | 密码列表 | 展示所有存储的密码条目，密码默认隐藏 |
+| **P0** | 查看密码 | 点击「显示」按钮可查看明文密码，再次点击恢复隐藏 |
+| **P0** | 复制密码 | 一键复制密码到剪贴板，并给出操作反馈 |
+| **P1** | 编辑密码 | 修改已存储的密码信息 |
+| **P1** | 删除密码 | 删除不再需要的密码条目 |
 
-## Deploy on Vercel
+### 2.2 搜索和分类
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| 优先级 | 功能 | 说明 |
+|--------|------|------|
+| **P0** | 搜索功能 | 按网站名称搜索，结果实时更新 |
+| **P1** | 分类筛选 | 按分类查看密码（如工作、社交、购物） |
+| **P1** | 添加分类 | 用户可自定义分类 |
+| **P2** | 标签功能 | 为密码添加多个标签 |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 2.3 密码生成器
+
+| 优先级 | 功能 | 说明 |
+|--------|------|------|
+| **P1** | 生成强密码 | 生成指定长度的随机密码 |
+| **P1** | 自定义规则 | 可选择包含大写、小写、数字、特殊字符 |
+| **P2** | 密码强度检测 | 检测密码强度（弱/中/强） |
+
+---
+
+  
