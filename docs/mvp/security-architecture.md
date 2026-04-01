@@ -24,36 +24,46 @@
 
 ### 3.1 技术选型
 
-| 用途     | 算法        | 说明                   |
-| -------- | ----------- | ---------------------- |
-| 密钥派生 | Argon2id    | 防暴力攻击，内存硬伤   |
-| 数据加密 | AES-256-GCM | 对称加密，认证加密模式 |
-| 用户认证 | JWT         | 无状态 token           |
+| 用途     | 算法        | 环境     | 说明                        |
+| -------- | ----------- | -------- | --------------------------- |
+| 密钥派生 | PBKDF2      | 仅客户端 | 用 email 作为固定盐派生密钥 |
+| 密码哈希 | Argon2id    | 仅服务端 | 防暴力攻击                  |
+| 数据加密 | AES-256-GCM | 仅客户端 | 对称加密，认证加密模式      |
+| 用户认证 | JWT         | 仅服务端 | 无状态 token                |
 
-### 3.2 密钥派生流程
+### 3.2 执行环境划分
+
+| 函数       | 服务端 | 客户端 | 说明                          |
+| ---------- | ------ | ------ | ----------------------------- |
+| generateIV | ❌     | ✅     | 客户端生成每次加密的 IV       |
+| deriveKey  | ❌     | ✅     | **仅客户端**：PBKDF2 派生密钥 |
+| encrypt    | ❌     | ✅     | 客户端加密密码后发送          |
+| decrypt    | ❌     | ✅     | 客户端解密查看密码            |
+
+**核心原则**：主密码**绝不离开客户端**，服务端只存储密文，不参与任何加解密操作。
+
+### 3.3 密钥派生流程（客户端）
 
 ```
-用户输入主密码 + 随机盐(salt)
+用户输入主密码 + 用户 email（作为固定盐）
        ↓
-    Argon2id(password, salt)
+    PBKDF2(password, email, iterations=100000)
        ↓
-    派生密钥 Ke (用于加解密)
+    固定密钥 Ke (256 bits，用于解密所有密码)
 ```
 
-**Argon2 参数建议**：
+**注意**：每个用户的 email 不同，所以即使主密码相同，不同用户的密钥也不同。
 
-- 时间复杂度：3 次迭代
-- 内存硬度：64 MB
-- 并行度：4
-
-### 3.3 加密流程
+### 3.4 加密流程（客户端）
 
 ```
 明文密码 (用户输入或密码生成器)
        ↓
-随机生成 IV (每次加密都不同)
+Ke (来自 PBKDF2 派生)
        ↓
-AES-256-GCM (Ke, IV, 明文) → 密文
+随机生成 IV (每条密码不同)
+       ↓
+AES-256-GCM (Ke, IV, 明文) → encryptedSecret
        ↓
 存储: encryptedSecret + IV
 ```
@@ -65,8 +75,8 @@ model User {
   id           String     @id @default(cuid())
   email        String     @unique
   passwordHash String     // 登录密码 Argon2 哈希
-  salt         String     // 主密码派生用的随机盐
   createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   categories   Category[]
   passwords    Password[]
 }
@@ -76,9 +86,10 @@ model Category {
   name       String     // 分类名称：如 "工作"、"社交"、"家门"
   type       String     // 类型：website/app/doorlock/card/other
   userId     String
-  user       User       @relation(fields: [userId], references: [id])
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   passwords  Password[]
   createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 }
 
 model Password {
@@ -86,11 +97,11 @@ model Password {
   username        String   // 用户名（明文）
   encryptedSecret String   // 加密后的密码
   iv              String   // AES-GCM 初始向量
-  notes           String?  // 备注（加密）
+  notes           String?  // 备注
   categoryId      String
-  category        Category @relation(fields: [categoryId], references: [id])
+  category        Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   userId          String
-  user            User     @relation(fields: [userId], references: [id])
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -101,81 +112,73 @@ model Password {
 ```
 1. 用户输入 email、登录密码、主密码
        ↓
-2. 客户端校验：主密码 ≠ 登录密码（前端对比）
+2. 客户端校验：主密码 ≠ 登录密码
        ↓
 3. 发送登录密码到服务器 → Argon2 哈希 → 存入 passwordHash
        ↓
-4. 生成随机 salt
-       ↓
-5. 主密码 + salt → Argon2id → 派生 Ke
-       ↓
-6. 用 Ke 加密用户测试数据（验证用）→ 存入 encryptedSecret
-       ↓
-7. 注册完成
+4. 注册完成（服务端无需存储任何主密码相关信息）
 ```
 
-**注意**：主密码从第 2 步后就不再使用，不会发送到服务器。
+**注意**：
+
+- 主密码从不发送到服务器
+- 服务端不存储盐或验证数据
+- 密钥派生和解密都在客户端完成
 
 ## 六、登录流程
 
 ```
 1. email + 登录密码 → 服务器验证 → 返回 JWT
        ↓
-2. 输入主密码
+2. 客户端请求获取密码列表 GET /api/passwords
        ↓
-3. 从 DB 获取 salt + encryptedSecret
+3. 用户输入主密码
        ↓
-4. 主密码 + salt → Argon2id → 派生 Ke
+4. 客户端用 PBKDF2(masterPassword, email) 派生 Ke
        ↓
-5. 用 Ke 解密 encryptedSecret
+5. 客户端用 Ke + iv 解密 encryptedSecret
        ↓
 6. 解密成功 → 金库解锁
    解密失败 → 提示主密码错误
 ```
 
-## 七、添加密码流程
+## 七、添加密码流程（客户端执行）
 
 ```
 1. 用户输入名称、用户名、密码（手动或生成器）
        ↓
-2. 从内存获取 Ke（如已解锁）
+2. 客户端已有 Ke（已解锁状态）
        ↓
-3. 随机生成 IV
+3. 客户端生成随机 IV
        ↓
 4. AES-256-GCM(Ke, IV, 密码) → encryptedSecret
        ↓
-5. 保存: username + encryptedSecret + IV + categoryId
+5. 发送: username + encryptedSecret + IV + categoryId 到服务端
 ```
 
-## 八、修改存储密码流程（encryptedSecret）
+## 八、查看密码流程（客户端执行）
 
 ```
-1. 用户已解锁金库（Ke 在内存中）
+1. 从服务端获取密码列表（encryptedSecret + IV）
        ↓
-2. 选择要修改的密码条目
+2. 用户已输入主密码（客户端有 Ke）
        ↓
-3. 输入新密码（手动或生成器）
+3. AES-256-GCM-Decrypt(encryptedSecret, Ke, IV) → 明文密码
        ↓
-4. 随机生成新 IV
-       ↓
-5. AES-256-GCM(Ke, IV, 新密码) → 新 encryptedSecret
-       ↓
-6. 更新 DB: encryptedSecret + IV
+4. 显示给用户
 ```
-
-**特点**：不涉及 Ke 变更，只是替换密文。
 
 ## 九、安全性分析
 
 ### 9.1 数据库泄露场景
 
-攻击者拿到：email, passwordHash, salt, encryptedSecret, IV
+攻击者拿到：email, passwordHash, encryptedSecret, IV
 
-| 攻击方式                          | 防护                    |
-| --------------------------------- | ----------------------- |
-| 暴力破解登录密码                  | Argon2 时间/内存硬度    |
-| 用 encryptedSecret 暴力破解主密码 | 没有主密码，无法派生 Ke |
-| 彩虹表攻击                        | 随机 salt 防预计算      |
+| 攻击方式                 | 防护                       |
+| ------------------------ | -------------------------- |
+| 暴力破解登录密码         | Argon2 时间/内存硬度       |
+| 暴力破解 encryptedSecret | 没有主密码，无法派生 Ke    |
+| 彩虹表攻击               | email 作为盐，每个用户不同 |
 
 ### 9.2 传输安全
 
@@ -197,12 +200,15 @@ model Password {
 
 ```typescript
 // 生成随机密码
-const password = crypto
-  .getRandomValues(new Uint8Array(length))
-  .reduce((acc, byte) => acc + chars[byte % chars.length], '')
+const randomBytes = new Uint8Array(length)
+crypto.getRandomValues(randomBytes)
+const password = Array.from(randomBytes)
+  .map((byte) => chars[byte % chars.length])
+  .join('')
 
-// 生成随机 IV
-const iv = crypto.getRandomValues(new Uint8Array(12))
+// 生成随机 IV (12 bytes for AES-GCM)
+const iv = new Uint8Array(12)
+crypto.getRandomValues(iv)
 ```
 
 ## 十一、实现顺序

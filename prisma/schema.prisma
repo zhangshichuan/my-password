@@ -1,7 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Prisma schema for Password Manager
+// SQLite provider
 
 generator client {
   provider = "prisma-client"
@@ -10,6 +8,52 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  // 体量小，所以默认会有真实的外键约束，生成环境需要禁用外键约束，可以添加 relationMode="prisma"。
-  // relationMode="prisma"
+}
+
+/**
+ * 用户模型
+ * 包含登录认证信息
+ */
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String // 登录密码 Argon2 哈希
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  categories   Category[]
+  passwords    Password[]
+}
+
+/**
+ * 分类模型
+ * 用于组织和分类密码条目
+ * type: website/app/doorlock/card/other
+ */
+model Category {
+  id        String     @id @default(cuid())
+  name      String // 分类名称：如 "工作"、"社交"、"家门"
+  type      String // 类型：website/app/doorlock/card/other
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passwords Password[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+/**
+ * 密码模型
+ * 存储加密后的密码和其他敏感信息
+ */
+model Password {
+  id              String   @id @default(cuid())
+  username        String // 用户名（明文）
+  encryptedSecret String // 加密后的密码
+  iv              String // AES-GCM 初始向量
+  notes           String? // 备注
+  categoryId      String
+  category        Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
