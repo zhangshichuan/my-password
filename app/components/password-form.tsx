@@ -1,0 +1,165 @@
+'use client'
+
+import type { Category, Password } from '@/app/lib/types'
+import { useCallback, useEffect, useState } from 'react'
+import PasswordGenerator from './password-generator'
+
+interface PasswordFormProps {
+  categories: Category[]
+  password?: Password | null
+  masterKey: string
+  onSubmit: (data: {
+    username: string
+    encryptedSecret: string
+    iv: string
+    notes: string
+    categoryId: string
+  }) => Promise<void>
+  onCancel: () => void
+}
+
+export default function PasswordForm({ categories, password, masterKey, onSubmit, onCancel }: PasswordFormProps) {
+  const [username, setUsername] = useState(password?.username || '')
+  const [secret, setSecret] = useState('')
+  const [notes, setNotes] = useState(password?.notes || '')
+  const [categoryId, setCategoryId] = useState(password?.categoryId || categories[0]?.id || '')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // 编辑时用解密后的密码填充表单
+  useEffect(() => {
+    if (password) {
+      setUsername(password.username)
+      // password.encryptedSecret 在编辑时是解密后的明文密码
+      setSecret(password.encryptedSecret || '')
+      setNotes(password.notes || '')
+      setCategoryId(password.categoryId)
+    }
+  }, [password])
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      setError('')
+
+      if (!username.trim()) {
+        setError('请输入用户名/网站')
+        return
+      }
+
+      if (!secret.trim()) {
+        setError('请输入密码')
+        return
+      }
+
+      if (!categoryId) {
+        setError('请选择分类')
+        return
+      }
+
+      setLoading(true)
+
+      try {
+        // 加密密码
+        const { encryptSecret } = await import('@/app/lib/vault')
+        const { encrypted, iv } = await encryptSecret(secret, masterKey)
+
+        await onSubmit({
+          username: username.trim(),
+          encryptedSecret: encrypted,
+          iv,
+          notes: notes.trim(),
+          categoryId,
+        })
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '保存失败')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [username, secret, notes, categoryId, masterKey, onSubmit],
+  )
+
+  const handlePasswordGenerated = useCallback((password: string) => {
+    setSecret(password)
+  }, [])
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="mb-1 block text-sm font-medium">用户名/网站</label>
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="例: example.com 或 App Name"
+          required
+          className="w-full rounded-lg border border-zinc-300 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">密码</label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={secret}
+            onChange={(e) => setSecret(e.target.value)}
+            placeholder="输入密码"
+            required
+            className="flex-1 rounded-lg border border-zinc-300 px-4 py-2 font-mono dark:border-zinc-600 dark:bg-zinc-800"
+          />
+        </div>
+        <div className="mt-2">
+          <PasswordGenerator onPasswordGenerated={handlePasswordGenerated} />
+        </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">分类</label>
+        <select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          required
+          className="w-full rounded-lg border border-zinc-300 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+        >
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">备注</label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="可选备注"
+          rows={3}
+          className="w-full rounded-lg border border-zinc-300 px-4 py-2 dark:border-zinc-600 dark:bg-zinc-800"
+        />
+      </div>
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 rounded-lg border border-zinc-300 px-4 py-2 font-medium hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800"
+        >
+          取消
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex-1 rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+          {loading ? '保存中...' : '保存'}
+        </button>
+      </div>
+    </form>
+  )
+}

@@ -1,8 +1,8 @@
 /**
  * 密码 API 测试
  */
-import { describe, it, expect, vi } from 'vitest'
-import { generateIV, encrypt, decrypt } from '../../lib/crypto'
+import { describe, expect, it } from 'vitest'
+import { decrypt, encrypt, generateIV } from '../../lib/password'
 
 describe('密码 API', () => {
   describe('密码加密', () => {
@@ -86,11 +86,6 @@ describe('密码 API', () => {
 
   describe('密码与分类关系', () => {
     it('应该正确关联分类', () => {
-      const categories = [
-        { id: 'cat-1', name: '工作', type: 'website' },
-        { id: 'cat-2', name: '社交', type: 'app' },
-      ]
-
       const passwords = [
         { id: 'pwd-1', username: 'work@email.com', categoryId: 'cat-1' },
         { id: 'pwd-2', username: 'social@email.com', categoryId: 'cat-2' },

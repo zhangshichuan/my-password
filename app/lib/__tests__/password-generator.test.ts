@@ -2,7 +2,7 @@
  * 密码生成器测试
  */
 import { describe, it, expect } from 'vitest'
-import { generatePassword, evaluatePasswordStrength, generateIV } from '../password-generator'
+import { generatePassword, evaluatePasswordStrength, generateIV } from '../password'
 
 describe('密码生成器', () => {
   describe('generatePassword', () => {

@@ -2,7 +2,8 @@
  * 认证 API 测试
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { hashPassword, deriveKey, encrypt } from '../../lib/crypto'
+import { hashPassword } from '../../services/auth'
+import { deriveKey, encrypt } from '../../lib/password'
 
 // Mock Prisma Client
 const mockPrismaUser = {

@@ -16,7 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/services/prisma'
-import { verifyPassword } from '@/app/lib/crypto'
+import { verifyPassword } from '@/app/services/auth'
 import { SignJWT } from 'jose'
 
 // JWT 密钥（生产环境应从环境变量读取）

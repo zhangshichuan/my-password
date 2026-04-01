@@ -1,5 +1,6 @@
 /**
  * 单个密码操作 API
+ * GET /api/passwords/[id] - 获取单个密码
  * PUT /api/passwords/[id] - 更新密码
  * DELETE /api/passwords/[id] - 删除密码
  */
@@ -23,6 +24,40 @@ async function getUserId(request: NextRequest): Promise<string | null> {
     return payload.userId as string
   } catch {
     return null
+  }
+}
+
+// 获取单个密码
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const userId = await getUserId(request)
+    if (!userId) {
+      return NextResponse.json({ error: '未授权' }, { status: 401 })
+    }
+
+    const { id } = await params
+
+    const password = await prisma.password.findFirst({
+      where: { id, userId },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+          },
+        },
+      },
+    })
+
+    if (!password) {
+      return NextResponse.json({ error: '密码不存在' }, { status: 404 })
+    }
+
+    return NextResponse.json(password)
+  } catch (error) {
+    console.error('获取密码错误:', error)
+    return NextResponse.json({ error: '服务器内部错误' }, { status: 500 })
   }
 }
 

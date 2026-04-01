@@ -1,10 +1,11 @@
 /**
- * 加密工具库测试
+ * 密码加密解密工具测试
  */
 import { describe, it, expect } from 'vitest'
-import { generateIV, encrypt, decrypt, deriveKey, hashPassword, verifyPassword } from '../crypto'
+import { generateIV, encrypt, decrypt, deriveKey } from '../password'
+import { hashPassword, verifyPassword } from '../../services/auth'
 
-describe('加密工具库', () => {
+describe('密码加密解密工具', () => {
   describe('generateIV', () => {
     it('应该生成 24 字符的十六进制 IV', () => {
       const iv = generateIV()
@@ -112,7 +113,7 @@ describe('加密工具库', () => {
     })
   })
 
-  describe('hashPassword & verifyPassword', () => {
+  describe('hashPassword & verifyPassword (服务端)', () => {
     it('应该正确哈希和验证密码', async () => {
       const password = 'testPassword123'
       const hash = await hashPassword(password)
