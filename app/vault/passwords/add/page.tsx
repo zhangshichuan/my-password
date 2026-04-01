@@ -2,21 +2,29 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createPassword, getCategories } from '@/app/lib/api'
-import { getMasterKey } from '@/app/lib/vault-session'
+import { createPassword, getCategories, getPasswords } from '@/app/lib/api'
+import { getMasterKey, setMasterKey } from '@/app/lib/vault-session'
 import PasswordForm from '@/app/components/password-form'
-import type { Category } from '@/app/lib/types'
+import MasterPasswordModal from '@/app/components/master-password-modal'
+import type { Category, Password } from '@/app/lib/types'
 
 export default function AddPasswordPage() {
   const router = useRouter()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [showMasterPasswordModal, setShowMasterPasswordModal] = useState(false)
+  const [existingPasswords, setExistingPasswords] = useState<Password[]>([])
 
   useEffect(() => {
     getCategories()
       .then(setCategories)
       .catch(console.error)
       .finally(() => setLoading(false))
+
+    // 获取已有密码数量，判断是否首次设置
+    getPasswords()
+      .then(setExistingPasswords)
+      .catch(console.error)
   }, [])
 
   const handleSubmit = useCallback(
@@ -31,6 +39,15 @@ export default function AddPasswordPage() {
     router.push('/vault')
   }, [router])
 
+  // 主密码设置/验证成功
+  const handleMasterPasswordSuccess = useCallback(
+    (key: string) => {
+      setMasterKey(key)
+      setShowMasterPasswordModal(false)
+    },
+    [],
+  )
+
   if (loading) {
     return (
       <div className="mx-auto max-w-md py-12 text-center">
@@ -41,17 +58,26 @@ export default function AddPasswordPage() {
 
   const masterKey = getMasterKey()
 
+  // 没有 masterKey，先弹出主密码设置/验证框
   if (!masterKey) {
     return (
-      <div className="mx-auto max-w-md py-12 text-center">
-        <p className="text-zinc-500">请先在密码列表解锁主密码</p>
-        <button
-          onClick={() => router.push('/vault')}
-          className="mt-2 text-sm text-zinc-600 underline hover:text-zinc-800 dark:text-zinc-400"
-        >
-          返回密码列表
-        </button>
-      </div>
+      <>
+        <div className="mx-auto max-w-md py-12 text-center">
+          <p className="text-zinc-500">请先设置主密码</p>
+          <button
+            onClick={() => setShowMasterPasswordModal(true)}
+            className="mt-2 text-sm text-zinc-600 underline hover:text-zinc-800 dark:text-zinc-400"
+          >
+            设置主密码
+          </button>
+        </div>
+        <MasterPasswordModal
+          isOpen={showMasterPasswordModal}
+          onSuccess={handleMasterPasswordSuccess}
+          onClose={() => setShowMasterPasswordModal(false)}
+          existingPasswords={existingPasswords}
+        />
+      </>
     )
   }
 

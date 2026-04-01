@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { getPasswords, deletePassword } from '@/app/lib/api'
-import { getCategories } from '@/app/lib/api'
-import { getMasterKey, setMasterKey } from '@/app/lib/vault-session'
-import PasswordCard from '@/app/components/password-card'
 import MasterPasswordModal from '@/app/components/master-password-modal'
-import type { Password, Category } from '@/app/lib/types'
+import PasswordCard from '@/app/components/password-card'
+import { deletePassword, getCategories, getPasswords } from '@/app/lib/api'
+import type { Category, Password } from '@/app/lib/types'
+import { getMasterKey, setMasterKey } from '@/app/lib/vault-session'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 
 export default function VaultPage() {
   const router = useRouter()
@@ -128,14 +127,6 @@ export default function VaultPage() {
       ) : filteredPasswords.length === 0 ? (
         <div className="rounded-lg border border-zinc-200 py-12 text-center dark:border-zinc-700">
           <p className="text-zinc-500">暂无密码</p>
-          {!masterKey && (
-            <button
-              onClick={() => setShowUnlockModal(true)}
-              className="mt-2 text-sm text-zinc-600 underline hover:text-zinc-800 dark:text-zinc-400"
-            >
-              解锁以添加密码
-            </button>
-          )}
         </div>
       ) : (
         <div className="space-y-3">
@@ -150,6 +141,7 @@ export default function VaultPage() {
         isOpen={showUnlockModal}
         onSuccess={handleUnlockSuccess}
         onClose={() => setShowUnlockModal(false)}
+        existingPasswords={passwords}
       />
     </div>
   )

@@ -7,6 +7,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { logout } from '@/app/lib/auth'
+import { clearMasterKey } from '@/app/lib/vault-session'
 import type { JWTPayload } from '@/app/lib/types'
 
 // 组件属性接口
@@ -26,6 +27,7 @@ export default function Header({ user }: HeaderProps) {
    * 清除 token 并跳转到登录页
    */
   const handleLogout = () => {
+    clearMasterKey()
     logout()
     router.push('/login')
   }

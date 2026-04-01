@@ -154,6 +154,7 @@ export default function PasswordCard({ password, onEdit, onDelete }: PasswordCar
         isOpen={showUnlockModal}
         onSuccess={handleUnlockSuccess}
         onClose={() => setShowUnlockModal(false)}
+        existingPasswords={[password]}
       />
     </>
   )

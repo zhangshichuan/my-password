@@ -67,6 +67,8 @@ docs/
 
 ## 快速开始
 
+根目录下创建 .env 文件, 参考 .env.example
+
 ### 安装依赖
 
 ```bash
@@ -76,7 +78,13 @@ pnpm install
 ### 初始化数据库
 
 ```bash
-pnpm db:migrate
+pnpm db:deploy
+```
+
+### 查看数据库数据
+
+```bash
+pnpm db:studio
 ```
 
 ### 启动开发服务器

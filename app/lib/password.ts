@@ -24,6 +24,14 @@ const AES_IV_LENGTH = 12 // 96 bits for GCM
 const AES_TAG_LENGTH = 16 // 128 bits
 const PBKDF2_ITERATIONS = 100000
 
+// 获取 crypto 实例（兼容不同环境）
+const getCrypto = (): Crypto => {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto) {
+    return globalThis.crypto
+  }
+  throw new Error('Web Crypto API is not available')
+}
+
 /**
  * 从主密码派生加密密钥
  * 使用 email 作为固定盐，确保相同密码 + 相同 email = 相同密钥
@@ -64,7 +72,7 @@ export async function deriveKey(masterPassword: string, email: string): Promise<
  */
 export function generateIV(): string {
   const iv = new Uint8Array(AES_IV_LENGTH)
-  crypto.getRandomValues(iv)
+  getCrypto().getRandomValues(iv)
   return arrayBufferToHex(iv)
 }
 
@@ -79,6 +87,7 @@ export async function encrypt(plaintext: string, key: string, iv: string): Promi
   const encoder = new TextEncoder()
   const keyBuffer = hexToArrayBuffer(key)
   const ivBuffer = hexToArrayBuffer(iv)
+  const crypto = getCrypto()
 
   const cryptoKey = await crypto.subtle.importKey('raw', keyBuffer, 'AES-GCM', false, ['encrypt'])
 
@@ -103,6 +112,7 @@ export async function decrypt(encryptedData: string, key: string, iv: string): P
   const decoder = new TextDecoder()
   const keyBuffer = hexToArrayBuffer(key)
   const ivBuffer = hexToArrayBuffer(iv)
+  const crypto = getCrypto()
 
   const [ciphertextHex, authTagHex] = encryptedData.split(':')
   const ciphertext = hexToArrayBuffer(ciphertextHex)
@@ -200,7 +210,7 @@ export function generatePassword(
 
   // 使用 crypto.getRandomValues 生成密码
   const randomValues = new Uint32Array(length)
-  crypto.getRandomValues(randomValues)
+  getCrypto().getRandomValues(randomValues)
 
   let password = ''
   for (let i = 0; i < length; i++) {
