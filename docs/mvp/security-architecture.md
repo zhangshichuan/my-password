@@ -63,24 +63,29 @@ Ke (来自 PBKDF2 派生)
        ↓
 随机生成 IV (每条密码不同)
        ↓
-AES-256-GCM (Ke, IV, 明文) → encryptedSecret
+AES-256-GCM (Ke, IV, 明文) → 密文 + 认证标签 (authTag)
        ↓
-存储: encryptedSecret + IV
-```
+encryptedSecret = 密文:authTag（组合成一个字符串）
+       ↓
+存储: encryptedSecret + IV（分开存储）
 
 ### 3.5 解密流程（客户端）
 
 ```
+
 从服务器获取: encryptedSecret + IV
-       ↓
+↓
+encryptedSecret = 密文:认证标签（按 : 分割）
+↓
 用户输入主密码 + email（作为固定盐）
-       ↓
+↓
 PBKDF2(masterPassword, email, iterations=100000) → Ke
-       ↓
-AES-256-GCM-Decrypt(encryptedSecret, Ke, IV) → 明文密码
-       ↓
+↓
+合并: 密文 + 认证标签 → AES-256-GCM-Decrypt(Ke, IV) → 明文密码
+↓
 显示给用户
-```
+
+````
 
 **注意**：
 
@@ -115,8 +120,8 @@ model Category {
 model Password {
   id              String   @id @default(cuid())
   username        String   // 用户名（明文）
-  encryptedSecret String   // 加密后的密码
-  iv              String   // AES-GCM 初始向量
+  encryptedSecret String   // 加密后的密码，格式: 密文:认证标签
+  iv              String   // AES-GCM 初始向量 (96 bits)
   notes           String?  // 备注
   categoryId      String
   category        Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -125,18 +130,20 @@ model Password {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
-```
+````
 
 ## 五、注册流程
 
 ```
-1. 用户输入 email、登录密码、主密码
+1. 用户输入 email、登录密码（注意：主密码不在此处设置）
        ↓
-2. 客户端校验：主密码 ≠ 登录密码
+2. 客户端校验登录密码长度 ≥ 8 位
        ↓
 3. 发送登录密码到服务器 → Argon2 哈希 → 存入 passwordHash
        ↓
-4. 注册完成（服务端无需存储任何主密码相关信息）
+4. 注册完成，跳转到密码库页面
+       ↓
+5. 主密码在首次需要解锁时由用户设置（不经过网络传输）
 ```
 
 **注意**：
@@ -152,14 +159,17 @@ model Password {
        ↓
 2. 客户端请求获取密码列表 GET /api/passwords
        ↓
-3. 用户输入主密码
+3. 密码列表页面展示（encryptedSecret 密文显示为 ••••••••）
        ↓
-4. 客户端用 PBKDF2(masterPassword, email) 派生 Ke
+4. 用户点击"显示"或"复制"时，弹出主密码输入框
        ↓
-5. 客户端用 Ke + iv 解密 encryptedSecret
+5a. 首次解锁（无已有密码）：校验主密码长度 ≥ 8 位 → PBKDF2 → Ke
        ↓
-6. 解密成功 → 金库解锁
-   解密失败 → 提示主密码错误
+5b. 非首次解锁：用主密码解密一条已有密码验证正确性 → PBKDF2 → Ke
+       ↓
+6. Ke 存入 sessionStorage，有效期 10 分钟
+       ↓
+7. 10 分钟内再次查看/复制无需重新输入主密码
 ```
 
 ## 七、添加密码流程（客户端执行）
@@ -181,11 +191,15 @@ model Password {
 ```
 1. 从服务端获取密码列表（encryptedSecret + IV）
        ↓
-2. 用户已输入主密码（客户端有 Ke）
+2. 密码列表页面展示（密码明文隐藏为 ••••••••）
        ↓
-3. AES-256-GCM-Decrypt(encryptedSecret, Ke, IV) → 明文密码
+3. 用户点击"显示"/"复制" → 检查是否有有效 Ke（sessionStorage）
        ↓
-4. 显示给用户
+4a. 有有效 Ke：直接解密显示
+       ↓
+4b. 无有效 Ke：弹出主密码输入框 → 验证通过后派生 Ke → 解密显示
+       ↓
+5. 解密成功显示明文，10 分钟内无需再次输入
 ```
 
 ## 九、安全性分析

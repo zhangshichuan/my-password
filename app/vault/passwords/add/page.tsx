@@ -22,9 +22,7 @@ export default function AddPasswordPage() {
       .finally(() => setLoading(false))
 
     // 获取已有密码数量，判断是否首次设置
-    getPasswords()
-      .then(setExistingPasswords)
-      .catch(console.error)
+    getPasswords().then(setExistingPasswords).catch(console.error)
   }, [])
 
   const handleSubmit = useCallback(
@@ -40,13 +38,10 @@ export default function AddPasswordPage() {
   }, [router])
 
   // 主密码设置/验证成功
-  const handleMasterPasswordSuccess = useCallback(
-    (key: string) => {
-      setMasterKey(key)
-      setShowMasterPasswordModal(false)
-    },
-    [],
-  )
+  const handleMasterPasswordSuccess = useCallback((key: string) => {
+    setMasterKey(key)
+    setShowMasterPasswordModal(false)
+  }, [])
 
   if (loading) {
     return (

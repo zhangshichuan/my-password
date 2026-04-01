@@ -28,8 +28,8 @@ POST /api/auth/register
 
 **注意:**
 
-- 主密码不在此接口传输，由客户端本地保管
-- 客户端用 PBKDF2(masterPassword, email) 派生密钥
+- 主密码不在此接口传输，注册时仅需设置登录密码
+- 主密码在首次解锁时由用户本地设置，通过 PBKDF2(masterPassword, email) 派生密钥
 
 ### 登录
 
@@ -140,8 +140,8 @@ GET /api/passwords
   {
     "id": "xxx",
     "username": "user@email.com",
-    "encryptedSecret": "xxx:xxx",
-    "iv": "xxx",
+    "encryptedSecret": "密文:认证标签",
+    "iv": "初始向量",
     "notes": "备注",
     "categoryId": "xxx",
     "category": { "id": "xxx", "name": "工作", "type": "website" }
@@ -161,12 +161,14 @@ POST /api/passwords
 ```json
 {
   "username": "user@email.com",
-  "encryptedSecret": "加密内容",
+  "encryptedSecret": "密文:认证标签",
   "iv": "初始向量",
   "notes": "备注",
   "categoryId": "xxx"
 }
 ```
+
+**注意:** `encryptedSecret` 格式为 `密文:认证标签`，使用 AES-256-GCM 加密时认证标签单独存储，加密时合并。
 
 **响应:** `201`
 
@@ -182,7 +184,7 @@ PUT /api/passwords/[id]
 ```json
 {
   "username": "新用户名",
-  "encryptedSecret": "新加密内容",
+  "encryptedSecret": "新密文:新认证标签",
   "iv": "新iv",
   "notes": "新备注",
   "categoryId": "xxx"
@@ -227,15 +229,15 @@ DELETE /api/passwords/[id]
 
 ### Password
 
-| 字段            | 类型    | 说明             |
-| --------------- | ------- | ---------------- |
-| id              | String  | 主键             |
-| username        | String  | 用户名（明文）   |
-| encryptedSecret | String  | 加密后的密码     |
-| iv              | String  | AES-GCM 初始向量 |
-| notes           | String? | 备注             |
-| categoryId      | String  | 所属分类 ID      |
-| userId          | String  | 所属用户 ID      |
+| 字段            | 类型    | 说明                              |
+| --------------- | ------- | --------------------------------- |
+| id              | String  | 主键                              |
+| username        | String  | 用户名（明文）                    |
+| encryptedSecret | String  | 加密后的密码，格式: 密文:认证标签 |
+| iv              | String  | AES-GCM 初始向量 (96 bits)        |
+| notes           | String? | 备注                              |
+| categoryId      | String  | 所属分类 ID                       |
+| userId          | String  | 所属用户 ID                       |
 
 ---
 
@@ -250,13 +252,15 @@ PBKDF2(masterPassword, email, iterations=100000) → Ke
 ### 加密
 
 ```
-Ke + 明文密码 + iv → AES-256-GCM → encryptedSecret
+Ke + 明文密码 + IV → AES-256-GCM → 密文 + 认证标签
+encryptedSecret = 密文:认证标签（组合成一个字符串）
 ```
 
 ### 解密
 
 ```
-Ke + encryptedSecret + iv → AES-256-GCM-Decrypt → 明文密码
+encryptedSecret 按 : 分割 → 密文 + 认证标签
+Ke + 密文 + 认证标签 + IV → AES-256-GCM-Decrypt → 明文密码
 ```
 
 ---

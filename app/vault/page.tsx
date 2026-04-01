@@ -16,11 +16,12 @@ export default function VaultPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [showUnlockModal, setShowUnlockModal] = useState(false)
-  const [masterKey, setMasterKeyState] = useState<string | null>(null)
-
-  // 初始化加载 masterKey
+  // 初始化检查是否已解锁
   useEffect(() => {
-    setMasterKeyState(getMasterKey())
+    // 检查是否已解锁（sessionStorage 中有 masterKey）
+    if (getMasterKey()) {
+      // 已解锁，可以直接访问
+    }
   }, [])
 
   // 加载分类
@@ -76,7 +77,6 @@ export default function VaultPage() {
   // 解锁成功
   const handleUnlockSuccess = useCallback((key: string) => {
     setMasterKey(key)
-    setMasterKeyState(key)
     setShowUnlockModal(false)
   }, [])
 
