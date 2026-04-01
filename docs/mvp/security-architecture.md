@@ -68,6 +68,26 @@ AES-256-GCM (Ke, IV, 明文) → encryptedSecret
 存储: encryptedSecret + IV
 ```
 
+### 3.5 解密流程（客户端）
+
+```
+从服务器获取: encryptedSecret + IV
+       ↓
+用户输入主密码 + email（作为固定盐）
+       ↓
+PBKDF2(masterPassword, email, iterations=100000) → Ke
+       ↓
+AES-256-GCM-Decrypt(encryptedSecret, Ke, IV) → 明文密码
+       ↓
+显示给用户
+```
+
+**注意**：
+
+- 解密完全在客户端完成，服务端永远不接触明文
+- 每条密码使用不同的 IV，即使相同明文加密结果也不同
+- Ke 是从主密码派生的，无法从 encryptedSecret 反推
+
 ## 四、数据模型
 
 ```prisma

@@ -1,17 +1,30 @@
 'use client'
 
+/**
+ * 页面头部组件
+ * 包含导航菜单和用户退出功能
+ */
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { logout } from '@/app/lib/auth'
 import type { JWTPayload } from '@/app/lib/types'
 
+// 组件属性接口
 interface HeaderProps {
-  user: JWTPayload | null
+  user: JWTPayload | null // 当前用户信息
 }
 
+/**
+ * 页面头部组件
+ * 显示 Logo、导航链接、用户邮箱和退出按钮
+ */
 export default function Header({ user }: HeaderProps) {
   const router = useRouter()
 
+  /**
+   * 处理退出登录
+   * 清除 token 并跳转到登录页
+   */
   const handleLogout = () => {
     logout()
     router.push('/login')
@@ -20,6 +33,7 @@ export default function Header({ user }: HeaderProps) {
   return (
     <header className="border-b border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
       <div className="mx-auto flex max-w-5xl items-center justify-between">
+        {/* 左侧：Logo 和导航 */}
         <div className="flex items-center gap-6">
           <h1 className="text-lg font-semibold">
             <Link href="/vault" className="text-zinc-900 dark:text-zinc-100">
@@ -41,6 +55,7 @@ export default function Header({ user }: HeaderProps) {
             </Link>
           </nav>
         </div>
+        {/* 右侧：用户信息和退出按钮 */}
         <div className="flex items-center gap-4">
           <span className="text-sm text-zinc-600 dark:text-zinc-400">{user?.email}</span>
           <button

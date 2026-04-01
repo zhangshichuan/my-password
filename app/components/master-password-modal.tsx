@@ -1,20 +1,26 @@
 'use client'
 
 /**
- * 主密码解锁弹窗
+ * 主密码解锁弹窗组件
+ * 用户输入主密码以解锁金库，验证通过后返回派生密钥
  */
 import { useState, useCallback } from 'react'
 import { verifyMasterPassword, deriveKey } from '@/app/lib/vault'
 import { getCurrentUser } from '@/app/lib/auth'
 
+// 组件属性接口
 interface MasterPasswordModalProps {
-  email?: string
-  isOpen: boolean
-  onSuccess: (key: string) => void
-  onClose: () => void
-  existingPasswords?: { encryptedSecret: string; iv: string }[]
+  email?: string // 邮箱（可选，默认从当前用户获取）
+  isOpen: boolean // 是否显示
+  onSuccess: (key: string) => void // 验证成功回调，返回派生密钥
+  onClose: () => void // 关闭弹窗回调
+  existingPasswords?: { encryptedSecret: string; iv: string }[] // 已有的加密密码（用于验证）
 }
 
+/**
+ * 主密码解锁弹窗
+ * 输入主密码后尝试验证，验证成功则派生密钥并通过回调返回
+ */
 export default function MasterPasswordModal({
   email: emailProp,
   isOpen,
@@ -22,13 +28,17 @@ export default function MasterPasswordModal({
   onClose,
   existingPasswords = [],
 }: MasterPasswordModalProps) {
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [password, setPassword] = useState('') // 主密码输入
+  const [error, setError] = useState('') // 错误信息
+  const [loading, setLoading] = useState(false) // 验证中状态
 
   // 获取 email：优先使用 props，否则从当前用户获取
   const email = emailProp || getCurrentUser()?.email || ''
 
+  /**
+   * 处理表单提交
+   * 验证主密码，验证通过则派生密钥并回调
+   */
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
@@ -72,6 +82,7 @@ export default function MasterPasswordModal({
         <h2 className="mb-4 text-lg font-semibold">输入主密码</h2>
         <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">请输入您的主密码以解锁金库</p>
 
+        {/* 主密码输入表单 */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <input
@@ -84,8 +95,10 @@ export default function MasterPasswordModal({
             />
           </div>
 
+          {/* 错误提示 */}
           {error && <p className="text-sm text-red-500">{error}</p>}
 
+          {/* 操作按钮 */}
           <div className="flex gap-2">
             <button
               type="button"

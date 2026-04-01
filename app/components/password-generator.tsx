@@ -2,23 +2,33 @@
 
 /**
  * 密码生成器组件
+ * 可自定义长度和字符类型生成随机强密码
  */
 import { generatePassword } from '@/app/lib/password'
 import { useCallback, useState } from 'react'
 
+// 组件属性接口
 interface PasswordGeneratorProps {
-  onPasswordGenerated: (password: string) => void
+  onPasswordGenerated: (password: string) => void // 生成后的回调
 }
 
+/**
+ * 密码生成器组件
+ * 提供密码长度滑块、字符类型选项，生成随机强密码
+ */
 export default function PasswordGenerator({ onPasswordGenerated }: PasswordGeneratorProps) {
-  const [length, setLength] = useState(16)
+  const [length, setLength] = useState(16) // 密码长度
   const [options, setOptions] = useState({
-    uppercase: true,
-    lowercase: true,
-    numbers: true,
-    symbols: true,
+    uppercase: true, // 大写字母
+    lowercase: true, // 小写字母
+    numbers: true, // 数字
+    symbols: true, // 特殊字符
   })
 
+  /**
+   * 生成密码
+   * 根据当前设置生成随机密码并回调
+   */
   const handleGenerate = useCallback(() => {
     const password = generatePassword(length, options)
     onPasswordGenerated(password)
@@ -28,7 +38,7 @@ export default function PasswordGenerator({ onPasswordGenerated }: PasswordGener
     <div className="space-y-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
       <h3 className="font-medium">密码生成器</h3>
 
-      {/* 长度 */}
+      {/* 长度滑块 */}
       <div className="space-y-2">
         <label className="flex items-center justify-between text-sm">
           <span>长度: {length}</span>
@@ -43,7 +53,7 @@ export default function PasswordGenerator({ onPasswordGenerated }: PasswordGener
         />
       </div>
 
-      {/* 选项 */}
+      {/* 字符类型选项 */}
       <div className="space-y-2">
         <label className="flex items-center gap-2 text-sm">
           <input

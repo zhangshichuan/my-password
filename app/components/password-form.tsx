@@ -1,30 +1,39 @@
 'use client'
 
+/**
+ * 密码表单组件
+ * 用于添加/编辑密码，包含密码生成器
+ */
 import type { Category, Password } from '@/app/lib/types'
 import { useCallback, useEffect, useState } from 'react'
 import PasswordGenerator from './password-generator'
 
+// 组件属性接口
 interface PasswordFormProps {
-  categories: Category[]
-  password?: Password | null
-  masterKey: string
+  categories: Category[] // 分类列表
+  password?: Password | null // 要编辑的密码（编辑模式）
+  masterKey: string // 主密码密钥
   onSubmit: (data: {
     username: string
     encryptedSecret: string
     iv: string
     notes: string
     categoryId: string
-  }) => Promise<void>
-  onCancel: () => void
+  }) => Promise<void> // 提交回调
+  onCancel: () => void // 取消回调
 }
 
+/**
+ * 密码表单组件
+ * 支持添加和编辑密码，编辑时自动解密显示
+ */
 export default function PasswordForm({ categories, password, masterKey, onSubmit, onCancel }: PasswordFormProps) {
-  const [username, setUsername] = useState(password?.username || '')
-  const [secret, setSecret] = useState('')
-  const [notes, setNotes] = useState(password?.notes || '')
-  const [categoryId, setCategoryId] = useState(password?.categoryId || categories[0]?.id || '')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [username, setUsername] = useState(password?.username || '') // 用户名/网站
+  const [secret, setSecret] = useState('') // 密码
+  const [notes, setNotes] = useState(password?.notes || '') // 备注
+  const [categoryId, setCategoryId] = useState(password?.categoryId || categories[0]?.id || '') // 分类
+  const [loading, setLoading] = useState(false) // 提交中状态
+  const [error, setError] = useState('') // 错误信息
 
   // 编辑时用解密后的密码填充表单
   useEffect(() => {
@@ -37,11 +46,16 @@ export default function PasswordForm({ categories, password, masterKey, onSubmit
     }
   }, [password])
 
+  /**
+   * 处理表单提交
+   * 验证输入，加密密码，然后调用提交回调
+   */
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
       setError('')
 
+      // 表单验证
       if (!username.trim()) {
         setError('请输入用户名/网站')
         return
@@ -60,10 +74,11 @@ export default function PasswordForm({ categories, password, masterKey, onSubmit
       setLoading(true)
 
       try {
-        // 加密密码
+        // 动态导入加密模块并加密密码
         const { encryptSecret } = await import('@/app/lib/vault')
         const { encrypted, iv } = await encryptSecret(secret, masterKey)
 
+        // 调用提交回调
         await onSubmit({
           username: username.trim(),
           encryptedSecret: encrypted,
@@ -80,12 +95,16 @@ export default function PasswordForm({ categories, password, masterKey, onSubmit
     [username, secret, notes, categoryId, masterKey, onSubmit],
   )
 
+  /**
+   * 处理密码生成器生成的密码
+   */
   const handlePasswordGenerated = useCallback((password: string) => {
     setSecret(password)
   }, [])
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* 用户名/网站输入 */}
       <div>
         <label className="mb-1 block text-sm font-medium">用户名/网站</label>
         <input
@@ -98,6 +117,7 @@ export default function PasswordForm({ categories, password, masterKey, onSubmit
         />
       </div>
 
+      {/* 密码输入和生成器 */}
       <div>
         <label className="mb-1 block text-sm font-medium">密码</label>
         <div className="flex gap-2">
@@ -110,11 +130,13 @@ export default function PasswordForm({ categories, password, masterKey, onSubmit
             className="flex-1 rounded-lg border border-zinc-300 px-4 py-2 font-mono dark:border-zinc-600 dark:bg-zinc-800"
           />
         </div>
+        {/* 密码生成器 */}
         <div className="mt-2">
           <PasswordGenerator onPasswordGenerated={handlePasswordGenerated} />
         </div>
       </div>
 
+      {/* 分类选择 */}
       <div>
         <label className="mb-1 block text-sm font-medium">分类</label>
         <select
@@ -131,6 +153,7 @@ export default function PasswordForm({ categories, password, masterKey, onSubmit
         </select>
       </div>
 
+      {/* 备注输入 */}
       <div>
         <label className="mb-1 block text-sm font-medium">备注</label>
         <textarea
@@ -142,8 +165,10 @@ export default function PasswordForm({ categories, password, masterKey, onSubmit
         />
       </div>
 
+      {/* 错误提示 */}
       {error && <p className="text-sm text-red-500">{error}</p>}
 
+      {/* 操作按钮 */}
       <div className="flex gap-2">
         <button
           type="button"
