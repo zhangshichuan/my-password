@@ -10,4 +10,6 @@ generator client {
 
 datasource db {
   provider = "sqlite"
+  // 体量小，所以默认会有真实的外键约束，生成环境需要禁用外键约束，可以添加 relationMode="prisma"。
+  // relationMode="prisma"
 }
