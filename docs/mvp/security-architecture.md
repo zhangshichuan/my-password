@@ -68,6 +68,7 @@ AES-256-GCM (Ke, IV, 明文) → 密文 + 认证标签 (authTag)
 encryptedSecret = 密文:authTag（组合成一个字符串）
        ↓
 存储: encryptedSecret + IV（分开存储）
+```
 
 ### 3.5 解密流程（客户端）
 
@@ -85,7 +86,7 @@ PBKDF2(masterPassword, email, iterations=100000) → Ke
 ↓
 显示给用户
 
-````
+```
 
 **注意**：
 
@@ -130,7 +131,7 @@ model Password {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
-````
+```
 
 ## 五、注册流程
 

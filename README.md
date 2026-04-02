@@ -1,6 +1,7 @@
 # MyPassword
 
 > 您的私人密码管理器 - 端到端加密，永不泄露
+> 本项目的编程辅助模型为 minimax2.7
 
 ## 功能特性
 
@@ -165,12 +166,4 @@ AES-256-GCM-Decrypt(encryptedSecret, Ke, IV) → 明文密码
 | 添加密码 | `/vault/passwords/add` | 添加新密码                                    |
 | 编辑密码 | `/vault/passwords/:id` | 编辑已有密码                                  |
 
-## 开发规范
-
-- 遵循开放封闭原则
-- 全量中文注释
-- 每一次代码生成后需编写并执行单元测试
-
 ---
-
-> 本项目的编程辅助模型为 minimax2.7
