@@ -24,6 +24,8 @@ const AES_IV_LENGTH = 12 // 96 bits for GCM
 const AES_TAG_LENGTH = 16 // 128 bits
 const PBKDF2_ITERATIONS = 100000
 
+type EncryptionKey = CryptoKey | string
+
 // 获取 crypto 实例（兼容不同环境）
 const getCrypto = (): Crypto => {
   if (typeof globalThis !== 'undefined' && globalThis.crypto) {
@@ -37,18 +39,19 @@ const getCrypto = (): Crypto => {
  * 使用 email 作为固定盐，确保相同密码 + 相同 email = 相同密钥
  * @param masterPassword 主密码
  * @param email 邮箱（作为盐）
- * @returns 派生的加密密钥 (hex)
+ * @returns 派生的加密密钥
  */
-export async function deriveKey(masterPassword: string, email: string): Promise<string> {
+export async function deriveKey(masterPassword: string, email: string): Promise<CryptoKey> {
   const encoder = new TextEncoder()
+  const crypto = getCrypto()
 
   // 导入密码作为原始 key material
   const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(masterPassword), 'PBKDF2', false, [
     'deriveKey',
   ])
 
-  // 派生 AES-GCM 密钥
-  const key = await crypto.subtle.deriveKey(
+  // 直接返回不可导出的 CryptoKey，只在内存中使用。
+  return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
       salt: encoder.encode(email), // 使用 email 作为盐
@@ -57,13 +60,9 @@ export async function deriveKey(masterPassword: string, email: string): Promise<
     },
     keyMaterial,
     { name: 'AES-GCM', length: AES_KEY_LENGTH * 8 },
-    true,
+    false,
     ['encrypt', 'decrypt'],
   )
-
-  // 导出为原始字节并转为 hex
-  const exported = await crypto.subtle.exportKey('raw', key)
-  return arrayBufferToHex(exported)
 }
 
 /**
@@ -79,17 +78,15 @@ export function generateIV(): string {
 /**
  * 加密数据
  * @param plaintext 明文
- * @param key 加密密钥 (hex)
+ * @param key 加密密钥
  * @param iv 初始向量 (hex)
  * @returns 加密后的数据 (hex) - 格式: 密文:authTag
  */
-export async function encrypt(plaintext: string, key: string, iv: string): Promise<string> {
+export async function encrypt(plaintext: string, key: EncryptionKey, iv: string): Promise<string> {
   const encoder = new TextEncoder()
-  const keyBuffer = hexToArrayBuffer(key)
   const ivBuffer = hexToArrayBuffer(iv)
   const crypto = getCrypto()
-
-  const cryptoKey = await crypto.subtle.importKey('raw', keyBuffer, 'AES-GCM', false, ['encrypt'])
+  const cryptoKey = await resolveCryptoKey(key, 'encrypt')
 
   const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: ivBuffer }, cryptoKey, encoder.encode(plaintext))
 
@@ -104,13 +101,12 @@ export async function encrypt(plaintext: string, key: string, iv: string): Promi
 /**
  * 解密数据
  * @param encryptedData 加密数据 (格式: 密文:authTag)
- * @param key 加密密钥 (hex)
+ * @param key 加密密钥
  * @param iv 初始向量 (hex)
  * @returns 解密后的明文
  */
-export async function decrypt(encryptedData: string, key: string, iv: string): Promise<string> {
+export async function decrypt(encryptedData: string, key: EncryptionKey, iv: string): Promise<string> {
   const decoder = new TextDecoder()
-  const keyBuffer = hexToArrayBuffer(key)
   const ivBuffer = hexToArrayBuffer(iv)
   const crypto = getCrypto()
 
@@ -123,7 +119,7 @@ export async function decrypt(encryptedData: string, key: string, iv: string): P
   combined.set(new Uint8Array(ciphertext), 0)
   combined.set(new Uint8Array(authTag), ciphertext.byteLength)
 
-  const cryptoKey = await crypto.subtle.importKey('raw', keyBuffer, 'AES-GCM', false, ['decrypt'])
+  const cryptoKey = await resolveCryptoKey(key, 'decrypt')
 
   const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: ivBuffer }, cryptoKey, combined)
 
@@ -154,13 +150,41 @@ export async function verifyMasterPassword(
   }
 }
 
+export async function resolveMasterKey(
+  masterPassword: string,
+  email: string,
+  existingPassword?: {
+    encryptedData: string
+    iv: string
+  },
+): Promise<CryptoKey> {
+  // 首次设置主密码时，没有历史密文可验证，只做最基本的长度校验。
+  if (masterPassword.length < 8) {
+    throw new Error('主密码至少8位')
+  }
+
+  const key = await deriveKey(masterPassword, email)
+
+  if (!existingPassword) {
+    return key
+  }
+
+  // 已有密码时，用一条历史密文验证主密码是否正确。
+  try {
+    await decrypt(existingPassword.encryptedData, key, existingPassword.iv)
+    return key
+  } catch {
+    throw new Error('主密码错误')
+  }
+}
+
 /**
  * 加密密码并返回加密结果
  * @param plaintext 明文密码
- * @param key 加密密钥 (hex)
+ * @param key 加密密钥
  * @returns 加密后的数据和 IV
  */
-export async function encryptSecret(plaintext: string, key: string): Promise<{ encrypted: string; iv: string }> {
+export async function encryptSecret(plaintext: string, key: EncryptionKey): Promise<{ encrypted: string; iv: string }> {
   const iv = generateIV()
   const encrypted = await encrypt(plaintext, key, iv)
   return { encrypted, iv }
@@ -169,11 +193,11 @@ export async function encryptSecret(plaintext: string, key: string): Promise<{ e
 /**
  * 解密密码
  * @param encryptedData 加密数据
- * @param key 加密密钥 (hex)
+ * @param key 加密密钥
  * @param iv 初始向量
  * @returns 解密后的明文密码
  */
-export async function decryptSecret(encryptedData: string, key: string, iv: string): Promise<string> {
+export async function decryptSecret(encryptedData: string, key: EncryptionKey, iv: string): Promise<string> {
   return decrypt(encryptedData, key, iv)
 }
 
@@ -266,4 +290,13 @@ function hexToArrayBuffer(hex: string): ArrayBuffer {
     bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
   }
   return bytes.buffer as ArrayBuffer
+}
+
+async function resolveCryptoKey(key: EncryptionKey, usage: 'encrypt' | 'decrypt'): Promise<CryptoKey> {
+  if (typeof key !== 'string') {
+    return key
+  }
+
+  // 保留对旧 hex key 的兼容能力，便于测试和渐进迁移。
+  return getCrypto().subtle.importKey('raw', hexToArrayBuffer(key), 'AES-GCM', false, [usage])
 }

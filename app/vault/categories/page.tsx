@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { getCategories, createCategory, updateCategory, deleteCategory } from '@/app/lib/api'
 import type { Category } from '@/app/lib/types'
+import { useCategoriesPage } from './use-categories-page'
 
 const CATEGORY_TYPES = [
   { value: 'website', label: '🌐 网站' },
@@ -13,84 +12,22 @@ const CATEGORY_TYPES = [
 ] as const
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
-  const [name, setName] = useState('')
-  const [type, setType] = useState<Category['type']>('website')
-  const [error, setError] = useState('')
-
-  const loadCategories = useCallback(async () => {
-    try {
-      const cats = await getCategories()
-      setCategories(cats)
-    } catch (err) {
-      console.error('加载分类失败', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadCategories()
-  }, [loadCategories])
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault()
-      setError('')
-
-      if (!name.trim()) {
-        setError('请输入分类名称')
-        return
-      }
-
-      try {
-        if (editingCategory) {
-          await updateCategory(editingCategory.id, { name: name.trim(), type })
-          setEditingCategory(null)
-        } else {
-          await createCategory({ name: name.trim(), type })
-        }
-        setName('')
-        setType('website')
-        setShowForm(false)
-        await loadCategories()
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '保存失败')
-      }
-    },
-    [editingCategory, name, type, loadCategories],
-  )
-
-  const handleEdit = useCallback((category: Category) => {
-    setEditingCategory(category)
-    setName(category.name)
-    setType(category.type)
-    setShowForm(true)
-  }, [])
-
-  const handleDelete = useCallback(
-    async (id: string) => {
-      if (!confirm('确定要删除这个分类吗？')) return
-      try {
-        await deleteCategory(id)
-        await loadCategories()
-      } catch {
-        alert('删除失败')
-      }
-    },
-    [loadCategories],
-  )
-
-  const handleCancel = useCallback(() => {
-    setShowForm(false)
-    setEditingCategory(null)
-    setName('')
-    setType('website')
-    setError('')
-  }, [])
+  const {
+    categories,
+    editingCategory,
+    error,
+    handleCancel,
+    handleDelete,
+    handleEdit,
+    handleSubmit,
+    loading,
+    name,
+    openCreateForm,
+    setName,
+    setType,
+    showForm,
+    type,
+  } = useCategoriesPage()
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -98,7 +35,7 @@ export default function CategoriesPage() {
         <h1 className="text-xl font-semibold">分类管理</h1>
         {!showForm && (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={openCreateForm}
             className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             添加分类

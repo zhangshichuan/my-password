@@ -5,14 +5,14 @@
  * 用于添加/编辑密码，包含密码生成器
  */
 import type { Category, Password } from '@/app/lib/types'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import PasswordGenerator from './password-generator'
 
 // 组件属性接口
 interface PasswordFormProps {
   categories: Category[] // 分类列表
   password?: Password | null // 要编辑的密码（编辑模式）
-  masterKey: string // 主密码密钥
+  masterKey: CryptoKey // 主密码密钥
   onSubmit: (data: {
     username: string
     encryptedSecret: string
@@ -28,79 +28,69 @@ interface PasswordFormProps {
  * 支持添加和编辑密码，编辑时自动解密显示
  */
 export default function PasswordForm({ categories, password, masterKey, onSubmit, onCancel }: PasswordFormProps) {
-  const [username, setUsername] = useState(password?.username || '') // 用户名/网站
-  const [secret, setSecret] = useState('') // 密码
-  const [notes, setNotes] = useState(password?.notes || '') // 备注
-  const [categoryId, setCategoryId] = useState(password?.categoryId || categories[0]?.id || '') // 分类
-  const [loading, setLoading] = useState(false) // 提交中状态
-  const [error, setError] = useState('') // 错误信息
+  const [username, setUsername] = useState(password?.username || '')
+  const [secret, setSecret] = useState(password?.encryptedSecret || '')
+  const [notes, setNotes] = useState(password?.notes || '')
+  const [categoryId, setCategoryId] = useState(password?.categoryId || categories[0]?.id || '')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  // 编辑时用解密后的密码填充表单
   useEffect(() => {
     if (password) {
       setUsername(password.username)
-      // password.encryptedSecret 在编辑时是解密后的明文密码
       setSecret(password.encryptedSecret || '')
       setNotes(password.notes || '')
       setCategoryId(password.categoryId)
+      return
     }
-  }, [password])
 
-  /**
-   * 处理表单提交
-   * 验证输入，加密密码，然后调用提交回调
-   */
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault()
-      setError('')
+    if (categories.length > 0) {
+      setCategoryId((current) => current || categories[0].id)
+    }
+  }, [categories, password])
 
-      // 表单验证
-      if (!username.trim()) {
-        setError('请输入用户名/网站')
-        return
-      }
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
 
-      if (!secret.trim()) {
-        setError('请输入密码')
-        return
-      }
+    if (!username.trim()) {
+      setError('请输入用户名/网站')
+      return
+    }
 
-      if (!categoryId) {
-        setError('请选择分类')
-        return
-      }
+    if (!secret.trim()) {
+      setError('请输入密码')
+      return
+    }
 
-      setLoading(true)
+    if (!categoryId) {
+      setError('请选择分类')
+      return
+    }
 
-      try {
-        // 动态导入加密模块并加密密码
-        const { encryptSecret } = await import('@/app/lib/vault')
-        const { encrypted, iv } = await encryptSecret(secret, masterKey)
+    setLoading(true)
 
-        // 调用提交回调
-        await onSubmit({
-          username: username.trim(),
-          encryptedSecret: encrypted,
-          iv,
-          notes: notes.trim(),
-          categoryId,
-        })
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '保存失败')
-      } finally {
-        setLoading(false)
-      }
-    },
-    [username, secret, notes, categoryId, masterKey, onSubmit],
-  )
+    try {
+      const { encryptSecret } = await import('@/app/lib/vault')
+      const { encrypted, iv } = await encryptSecret(secret, masterKey)
 
-  /**
-   * 处理密码生成器生成的密码
-   */
-  const handlePasswordGenerated = useCallback((password: string) => {
+      await onSubmit({
+        username: username.trim(),
+        encryptedSecret: encrypted,
+        iv,
+        notes: notes.trim(),
+        categoryId,
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handlePasswordGenerated(password: string) {
     setSecret(password)
-  }, [])
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

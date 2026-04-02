@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { isAuthenticated, getCurrentUser } from '@/app/lib/auth'
+import { getCurrentUser, isAuthenticated } from '@/app/lib/auth'
 import Header from '@/app/components/header'
 
 export default function VaultLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +15,8 @@ export default function VaultLayout({ children }: { children: React.ReactNode })
       router.push('/login')
       return
     }
+
+    // 本地鉴权信息来自 storage，只能在挂载后读取一次并同步到界面状态。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(getCurrentUser())
 

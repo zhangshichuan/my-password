@@ -1,44 +1,13 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { login, isAuthenticated } from '@/app/lib/auth'
+import { useLoginPage } from './use-login-page'
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  // 已登录则跳转到 vault
-  useEffect(() => {
-    if (isAuthenticated()) {
-      router.push('/vault')
-    }
-  }, [router])
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault()
-      setError('')
-      setLoading(true)
-
-      try {
-        await login({ email, password })
-        router.push('/vault')
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '登录失败')
-      } finally {
-        setLoading(false)
-      }
-    },
-    [email, password, router],
-  )
+  const { email, error, handleSubmit, loading, password, setEmail, setPassword } = useLoginPage()
 
   return (
-    <div className="flex items-center justify-center bg-zinc-50 px-4 py-12 dark:bg-zinc-950">
+    <div className="flex min-h-dvh w-full items-center justify-center bg-zinc-50 px-4 py-12 dark:bg-zinc-950">
       <div className="w-full max-w-sm">
         {/* Logo 和标题 */}
         <div className="mb-8 text-center">

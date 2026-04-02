@@ -5,7 +5,7 @@
  * 可自定义长度和字符类型生成随机强密码
  */
 import { generatePassword } from '@/app/lib/password'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 
 // 组件属性接口
 interface PasswordGeneratorProps {
@@ -25,14 +25,10 @@ export default function PasswordGenerator({ onPasswordGenerated }: PasswordGener
     symbols: true, // 特殊字符
   })
 
-  /**
-   * 生成密码
-   * 根据当前设置生成随机密码并回调
-   */
-  const handleGenerate = useCallback(() => {
+  function handleGenerate() {
     const password = generatePassword(length, options)
     onPasswordGenerated(password)
-  }, [length, options, onPasswordGenerated])
+  }
 
   return (
     <div className="space-y-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">

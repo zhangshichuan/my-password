@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/services/prisma'
 import { jwtVerify } from 'jose'
+import { validatePasswordUpdateInput } from '../validation'
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key-change-in-production')
 
@@ -73,6 +74,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json()
     const { username, encryptedSecret, iv, notes, categoryId } = body
 
+    const validationError = validatePasswordUpdateInput({ username, encryptedSecret, iv, categoryId })
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 })
+    }
+
     // 检查密码是否存在且属于当前用户
     const existingPassword = await prisma.password.findFirst({
       where: { id, userId },
@@ -83,9 +89,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // 如果更改分类，验证新分类属于当前用户
-    if (categoryId && categoryId !== existingPassword.categoryId) {
+    const normalizedCategoryId = typeof categoryId === 'string' ? categoryId.trim() : undefined
+
+    if (normalizedCategoryId && normalizedCategoryId !== existingPassword.categoryId) {
       const category = await prisma.category.findFirst({
-        where: { id: categoryId, userId },
+        where: { id: normalizedCategoryId, userId },
       })
       if (!category) {
         return NextResponse.json({ error: '分类不存在' }, { status: 404 })
@@ -95,11 +103,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const password = await prisma.password.update({
       where: { id },
       data: {
-        ...(username !== undefined && { username }),
+        ...(username !== undefined && { username: username.trim() }),
         ...(encryptedSecret !== undefined && { encryptedSecret }),
         ...(iv !== undefined && { iv }),
-        ...(notes !== undefined && { notes }),
-        ...(categoryId && { categoryId }),
+        ...(notes !== undefined && { notes: typeof notes === 'string' && notes.trim() ? notes.trim() : null }),
+        ...(normalizedCategoryId && { categoryId: normalizedCategoryId }),
       },
       include: {
         category: {

@@ -7,7 +7,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { logout } from '@/app/lib/auth'
-import { clearMasterKey } from '@/app/lib/vault-session'
+import { useMasterKey } from '@/app/lib/use-master-key'
 import type { JWTPayload } from '@/app/lib/types'
 
 // 组件属性接口
@@ -21,6 +21,7 @@ interface HeaderProps {
  */
 export default function Header({ user }: HeaderProps) {
   const router = useRouter()
+  const { clearMasterKey } = useMasterKey()
 
   /**
    * 处理退出登录

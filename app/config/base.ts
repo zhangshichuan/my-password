@@ -1,1 +1,7 @@
-export const DATABASE_URL = process.env.DATABASE_URL || 'file:./my-password.db'
+const databaseUrl = process.env.DATABASE_URL
+
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is not configured')
+}
+
+export const DATABASE_URL = databaseUrl

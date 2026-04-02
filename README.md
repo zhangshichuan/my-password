@@ -1,7 +1,6 @@
 # MyPassword
 
 > 您的私人密码管理器 - 端到端加密，永不泄露
-> 本项目的编程辅助模型为 minimax2.7
 
 ## 功能特性
 
@@ -47,7 +46,10 @@ app/
 │   └── master-password-modal.tsx # 主密码弹窗
 ├── lib/                   # 核心库
 │   ├── password.ts        # 密码加密解密工具
-│   ├── vault-session.ts    # 会话管理（主密码过期）
+│   ├── master-key.ts      # 主密码内存仓库（10分钟过期）
+│   ├── use-master-key.ts  # 主密码状态订阅 hook
+│   ├── use-unlock-action.ts # 先解锁再执行动作的 hook
+│   ├── use-unlock-prompt.ts # 页面级主密码弹窗 hook
 │   ├── vault.ts           # 金库加解密封装
 │   ├── api.ts             # API 客户端
 │   ├── auth.ts            # 认证工具
@@ -150,6 +152,13 @@ AES-256-GCM-Decrypt(encryptedSecret, Ke, IV) → 明文密码
 显示给用户
 ```
 
+### 主密码会话
+
+- 主密码派生出的 `CryptoKey` 仅保存在当前标签页内存中
+- 不写入 `localStorage` / `sessionStorage`
+- 10 分钟无重新解锁会自动失效
+- 刷新页面后需要重新输入主密码
+
 ### 主密码警告
 
 > **重要**：主密码丢失将无法恢复！
@@ -161,7 +170,7 @@ AES-256-GCM-Decrypt(encryptedSecret, Ke, IV) → 明文密码
 | 页面     | 路径                   | 说明                                          |
 | -------- | ---------------------- | --------------------------------------------- |
 | 登录     | `/login`               | 输入邮箱和登录密码                            |
-| 注册     | `/register`            | 创建账号，设置主密码                          |
+| 注册     | `/register`            | 创建账号（主密码在首次解锁时设置）            |
 | 密码库   | `/vault`               | 查看所有密码，点击显示/复制时需输入主密码解锁 |
 | 添加密码 | `/vault/passwords/add` | 添加新密码                                    |
 | 编辑密码 | `/vault/passwords/:id` | 编辑已有密码                                  |

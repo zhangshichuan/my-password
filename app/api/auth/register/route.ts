@@ -51,22 +51,23 @@ export async function POST(request: NextRequest) {
     // 创建用户（登录密码哈希）
     const passwordHash = await hashPassword(loginPassword)
 
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-      },
-    })
+    const user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email,
+          passwordHash,
+        },
+      })
 
-    // 创建默认分类
-    const defaultCategories = [
-      { name: '工作', type: 'website', userId: user.id },
-      { name: '社交', type: 'app', userId: user.id },
-      { name: '家门', type: 'doorlock', userId: user.id },
-    ]
+      await tx.category.createMany({
+        data: [
+          { name: '工作', type: 'website', userId: createdUser.id },
+          { name: '社交', type: 'app', userId: createdUser.id },
+          { name: '家门', type: 'doorlock', userId: createdUser.id },
+        ],
+      })
 
-    await prisma.category.createMany({
-      data: defaultCategories,
+      return createdUser
     })
 
     return NextResponse.json(

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/app/services/prisma'
 import { jwtVerify } from 'jose'
+import { validatePasswordCreateInput } from './validation'
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key-change-in-production')
 
@@ -77,6 +78,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少必要字段' }, { status: 400 })
     }
 
+    const validationError = validatePasswordCreateInput({ username, encryptedSecret, iv, categoryId })
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 })
+    }
+
     // 验证分类属于当前用户
     const category = await prisma.category.findFirst({
       where: { id: categoryId, userId },
@@ -88,11 +94,11 @@ export async function POST(request: NextRequest) {
 
     const password = await prisma.password.create({
       data: {
-        username,
+        username: username.trim(),
         encryptedSecret,
         iv,
-        notes: notes || null,
-        categoryId,
+        notes: typeof notes === 'string' && notes.trim() ? notes.trim() : null,
+        categoryId: categoryId.trim(),
         userId,
       },
       include: {

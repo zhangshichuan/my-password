@@ -61,7 +61,7 @@ export function isAuthenticated(): boolean {
   const token = getToken()
   if (!token) return false
 
-  // 检查 token 是否过期
+  // 登录态判断完全基于本地 token + 本地缓存的 payload。
   const user = getCurrentUser()
   if (!user) return false
 
@@ -143,7 +143,12 @@ export function logout(): void {
 function decodeJWT(token: string): JWTPayload | null {
   try {
     const [, payload] = token.split('.')
-    const decoded = atob(payload)
+    if (!payload) return null
+
+    // JWT 使用 base64url，需要先转换成 atob 可识别的普通 base64。
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
+    const decoded = atob(padded)
     return JSON.parse(decoded)
   } catch {
     return null

@@ -74,42 +74,56 @@ describe('密码加密解密工具', () => {
 
       const key = await deriveKey(password, email)
 
-      // 密钥应该是 64 字符的十六进制 (32 bytes)
-      expect(key).toHaveLength(64)
-      expect(/^[a-f0-9]+$/.test(key)).toBe(true)
+      expect(key.type).toBe('secret')
+      expect(key.algorithm.name).toBe('AES-GCM')
+      expect(key.extractable).toBe(false)
     })
 
     it('相同密码 + 相同 email 应该产生相同的密钥', async () => {
       const password = 'my-master-password'
       const email = 'user@example.com'
+      const plaintext = 'same-secret'
+      const iv = '000000000000000000000000'
 
       const key1 = await deriveKey(password, email)
       const key2 = await deriveKey(password, email)
 
-      // 相同的输入应该产生相同的密钥
-      expect(key1).toBe(key2)
+      const encrypted1 = await encrypt(plaintext, key1, iv)
+      const encrypted2 = await encrypt(plaintext, key2, iv)
+
+      expect(encrypted1).toBe(encrypted2)
     })
 
     it('不同 email 应该产生不同的密钥', async () => {
       const password = 'same-password'
       const email1 = 'user1@example.com'
       const email2 = 'user2@example.com'
+      const plaintext = 'same-secret'
+      const iv = '000000000000000000000000'
 
       const key1 = await deriveKey(password, email1)
       const key2 = await deriveKey(password, email2)
 
-      expect(key1).not.toBe(key2)
+      const encrypted1 = await encrypt(plaintext, key1, iv)
+      const encrypted2 = await encrypt(plaintext, key2, iv)
+
+      expect(encrypted1).not.toBe(encrypted2)
     })
 
     it('不同密码应该产生不同的密钥', async () => {
       const password1 = 'password-one'
       const password2 = 'password-two'
       const email = 'user@example.com'
+      const plaintext = 'same-secret'
+      const iv = '000000000000000000000000'
 
       const key1 = await deriveKey(password1, email)
       const key2 = await deriveKey(password2, email)
 
-      expect(key1).not.toBe(key2)
+      const encrypted1 = await encrypt(plaintext, key1, iv)
+      const encrypted2 = await encrypt(plaintext, key2, iv)
+
+      expect(encrypted1).not.toBe(encrypted2)
     })
   })
 

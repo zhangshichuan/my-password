@@ -170,6 +170,9 @@ POST /api/passwords
 
 **注意:** `encryptedSecret` 格式为 `密文:认证标签`，使用 AES-256-GCM 加密时认证标签单独存储，加密时合并。
 
+- `iv` 必须是 24 位十六进制字符串（12 bytes）
+- `authTag` 必须是 32 位十六进制字符串（16 bytes）
+
 **响应:** `201`
 
 ### 更新密码
@@ -192,6 +195,11 @@ PUT /api/passwords/[id]
 ```
 
 **响应:** `200`
+
+**注意:**
+
+- 若更新密文，必须同时提供 `encryptedSecret` 和 `iv`
+- 服务端会校验 `encryptedSecret` 和 `iv` 的格式，非法数据会返回 `400`
 
 ### 删除密码
 

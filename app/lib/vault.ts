@@ -4,7 +4,7 @@
  *
  * 所有函数委托给 lib/password.ts 实现
  */
-import { deriveKey, encryptSecret, decryptSecret, verifyMasterPassword } from './password'
+import { decryptSecret, deriveKey, encryptSecret, resolveMasterKey, verifyMasterPassword } from './password'
 
 // 重新导出
-export { deriveKey, encryptSecret, decryptSecret, verifyMasterPassword }
+export { deriveKey, encryptSecret, decryptSecret, resolveMasterKey, verifyMasterPassword }

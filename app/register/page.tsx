@@ -1,60 +1,23 @@
 'use client'
 
-import { isAuthenticated, login, register } from '@/app/lib/auth'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useRegisterPage } from './use-register-page'
 
 export default function RegisterPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [loginPassword, setLoginPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  // 已登录则跳转到 vault
-  useEffect(() => {
-    if (isAuthenticated()) {
-      router.push('/vault')
-    }
-  }, [router])
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault()
-      setError('')
-
-      // 校验登录密码
-      if (loginPassword.length < 8) {
-        setError('登录密码至少8位')
-        return
-      }
-
-      // 校验确认密码
-      if (loginPassword !== confirmPassword) {
-        setError('两次输入的登录密码不一致')
-        return
-      }
-
-      setLoading(true)
-
-      try {
-        await register({ email, loginPassword })
-        // 注册后自动登录
-        await login({ email, password: loginPassword })
-        router.push('/vault')
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '注册失败')
-      } finally {
-        setLoading(false)
-      }
-    },
-    [email, loginPassword, confirmPassword, router],
-  )
+  const {
+    confirmPassword,
+    email,
+    error,
+    handleSubmit,
+    loading,
+    loginPassword,
+    setConfirmPassword,
+    setEmail,
+    setLoginPassword,
+  } = useRegisterPage()
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12 dark:bg-zinc-950">
+    <div className="flex min-h-dvh w-full items-center justify-center bg-zinc-50 px-4 py-12 dark:bg-zinc-950">
       <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow dark:bg-zinc-900">
         <h1 className="mb-6 text-2xl font-semibold">注册</h1>
 
@@ -80,7 +43,7 @@ export default function RegisterPage() {
             </label>
             <input
               id="loginPassword"
-              type="text"
+              type="password"
               value={loginPassword}
               onChange={(e) => setLoginPassword(e.target.value)}
               placeholder="至少8位"
@@ -96,7 +59,7 @@ export default function RegisterPage() {
             </label>
             <input
               id="confirmPassword"
-              type="text"
+              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="再次输入登录密码"

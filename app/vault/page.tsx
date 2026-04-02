@@ -2,93 +2,36 @@
 
 import MasterPasswordModal from '@/app/components/master-password-modal'
 import PasswordCard from '@/app/components/password-card'
-import { deletePassword, getCategories, getPasswords } from '@/app/lib/api'
-import type { Category, Password } from '@/app/lib/types'
-import { getMasterKey, setMasterKey } from '@/app/lib/vault-session'
+import type { Password } from '@/app/lib/types'
+import { useUnlockAction } from '@/app/lib/use-unlock-action'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useVaultPageState } from './use-vault-page-state'
 
 export default function VaultPage() {
   const router = useRouter()
-  const [passwords, setPasswords] = useState<Password[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('')
-  const [showUnlockModal, setShowUnlockModal] = useState(false)
-  // 初始化检查是否已解锁
-  useEffect(() => {
-    // 检查是否已解锁（sessionStorage 中有 masterKey）
-    if (getMasterKey()) {
-      // 已解锁，可以直接访问
-    }
-  }, [])
+  const {
+    categories,
+    filteredPasswords,
+    handleDelete,
+    loading,
+    passwords,
+    searchQuery,
+    selectedCategory,
+    setSearchQuery,
+    setSelectedCategory,
+  } = useVaultPageState()
 
-  // 加载分类
-  useEffect(() => {
-    getCategories().then(setCategories).catch(console.error)
-  }, [])
-
-  // 加载密码（加密状态）
-  const loadPasswords = useCallback(async () => {
-    setLoading(true)
-    try {
-      const pws = await getPasswords(selectedCategory || undefined)
-      setPasswords(pws)
-    } catch (err) {
-      console.error('加载密码失败', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [selectedCategory])
-
-  useEffect(() => {
-    loadPasswords()
-  }, [loadPasswords])
-
-  // 删除密码
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('确定要删除这条密码吗?')) return
-    try {
-      await deletePassword(id)
-      setPasswords((prev) => prev.filter((p) => p.id !== id))
-    } catch {
-      alert('删除失败')
-    }
-  }, [])
-
-  // 编辑密码
-  const handleEdit = useCallback(
-    (password: Password) => {
-      router.push(`/vault/passwords/${password.id}`)
-    },
-    [router],
-  )
-
-  // 添加密码 - 如果未解锁先解锁
-  const handleAddPassword = useCallback(() => {
-    if (getMasterKey()) {
-      router.push('/vault/passwords/add')
-    } else {
-      setShowUnlockModal(true)
-    }
-  }, [router])
-
-  // 解锁成功
-  const handleUnlockSuccess = useCallback((key: string) => {
-    setMasterKey(key)
-    setShowUnlockModal(false)
-  }, [])
-
-  // 过滤密码
-  const filteredPasswords = passwords.filter((p) => {
-    const matchesSearch =
-      !searchQuery ||
-      p.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.notes?.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = !selectedCategory || p.categoryId === selectedCategory
-    return matchesSearch && matchesCategory
+  const addPasswordAction = useUnlockAction(async () => {
+    router.push('/vault/passwords/add')
   })
+
+  function handleEdit(password: Password) {
+    router.push(`/vault/passwords/${password.id}`)
+  }
+
+  function handleAddPassword() {
+    void addPasswordAction.run()
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
@@ -138,9 +81,9 @@ export default function VaultPage() {
 
       {/* 解锁弹窗 */}
       <MasterPasswordModal
-        isOpen={showUnlockModal}
-        onSuccess={handleUnlockSuccess}
-        onClose={() => setShowUnlockModal(false)}
+        isOpen={addPasswordAction.isUnlockOpen}
+        onSuccess={addPasswordAction.handleUnlockSuccess}
+        onClose={addPasswordAction.closeUnlock}
         existingPasswords={passwords}
       />
     </div>

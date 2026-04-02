@@ -71,18 +71,24 @@ describe('认证 API', () => {
 
       const key = await deriveKey(masterPassword, email)
 
-      expect(key).toHaveLength(64)
-      expect(/^[a-f0-9]+$/.test(key)).toBe(true)
+      expect(key.type).toBe('secret')
+      expect(key.algorithm.name).toBe('AES-GCM')
+      expect(key.extractable).toBe(false)
     })
 
     it('相同的主密码 + email 应该产生相同的密钥', async () => {
       const masterPassword = 'myMasterPassword'
       const email = 'user@example.com'
+      const plaintext = 'mySecretPassword'
+      const iv = '000000000000000000000000'
 
       const key1 = await deriveKey(masterPassword, email)
       const key2 = await deriveKey(masterPassword, email)
 
-      expect(key1).toBe(key2)
+      const encrypted1 = await encrypt(plaintext, key1, iv)
+      const encrypted2 = await encrypt(plaintext, key2, iv)
+
+      expect(encrypted1).toBe(encrypted2)
     })
   })
 
