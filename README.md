@@ -31,41 +31,57 @@
 | 样式           | Tailwind CSS                         |
 | 测试           | Vitest                               |
 
+## 开发入口
+
+开始开发前，优先阅读以下文档：
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - 项目总体分层、边界和放置规则
+
 ## 项目结构
 
 ```
 app/
-├── api/                    # API 路由
-│   ├── auth/               # 认证接口（登录/注册）
-│   ├── categories/        # 分类接口
-│   └── passwords/         # 密码接口
-├── components/            # React 组件
-│   ├── password-card.tsx      # 密码卡片
-│   ├── password-form.tsx      # 密码表单
-│   ├── password-generator.tsx # 密码生成器
-│   └── master-password-modal.tsx # 主密码弹窗
-├── lib/                   # 核心库
-│   ├── password.ts        # 密码加密解密工具
-│   ├── master-key.ts      # 主密码内存仓库（10分钟过期）
-│   ├── use-master-key.ts  # 主密码状态订阅 hook
-│   ├── use-unlock-action.ts # 先解锁再执行动作的 hook
-│   ├── use-unlock-prompt.ts # 页面级主密码弹窗 hook
-│   ├── vault.ts           # 金库加解密封装
-│   ├── api.ts             # API 客户端
-│   ├── auth.ts            # 认证工具
-│   └── types.ts           # 类型定义
-├── login/                 # 登录页面
-├── register/              # 注册页面
-└── vault/                 # 密码库页面
-    ├── page.tsx           # 密码列表
-    ├── categories/       # 分类管理
-    └── passwords/         # 密码详情/编辑
+├── api/                   # Route Handlers
+├── login/                 # 登录页路由
+├── register/              # 注册页路由
+└── vault/                 # 金库相关路由
+src/
+├── features/              # 业务功能代码
+│   ├── auth/
+│   │   ├── api/           # 认证客户端请求
+│   │   ├── components/    # 认证业务组件
+│   │   ├── hooks/         # 认证状态逻辑
+│   │   ├── model/         # 认证模型与存储
+│   │   ├── queries/       # 认证读取逻辑
+│   │   ├── server-actions/ # 认证服务端动作
+│   │   └── services/      # 认证业务编排
+│   └── vault/
+│       ├── api/           # 金库客户端请求
+│       ├── components/    # 金库业务组件
+│       ├── crypto/        # 加密解密能力
+│       ├── hooks/         # 金库交互状态
+│       ├── model/         # 金库状态模型
+│       ├── password/      # 密码生成与强度规则
+│       ├── queries/       # 金库读取逻辑
+│       ├── server-actions/ # 金库服务端动作
+│       └── services/      # 金库业务编排
+├── shared/                # 跨业务复用代码
+│   ├── api/               # 通用请求能力
+│   ├── components/        # 全局公共组件
+│   ├── config/            # 共享配置
+│   ├── constants/         # 通用常量
+│   ├── hooks/             # 全局公共 Hook
+│   ├── types/             # 共享类型
+│   └── utils/             # 通用工具函数
+└── server/                # 纯服务端基础设施
+    ├── auth/              # 密码哈希、JWT 等能力
+    └── db/                # Prisma 与数据库接入
 docs/
 ├── mvp/                   # MVP 文档
-│   ├── security-architecture.md  # 安全架构设计
-│   └── api-spec.md        # API 文档
 └── v1/                    # V1 规划
-    └── feature-roadmap.md # 功能路线图
+tests/
+├── api/                   # 接口相关测试
+└── unit/                  # 单元测试
 ```
 
 ## 快速开始
