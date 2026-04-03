@@ -15,9 +15,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/app/services/prisma'
-import { verifyPassword } from '@/app/services/auth'
 import { SignJWT } from 'jose'
+import { verifyPassword } from '@/src/server/auth/password-hasher'
+import { prisma } from '@/src/server/db/prisma'
 
 // JWT 密钥（生产环境应从环境变量读取）
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key-change-in-production')

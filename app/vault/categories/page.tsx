@@ -1,7 +1,7 @@
 'use client'
 
-import type { Category } from '@/app/lib/types'
-import { useCategoriesPage } from './use-categories-page'
+import { useCategoriesPage } from '@/src/features/vault/hooks/use-categories-page'
+import type { Category } from '@/src/shared/types'
 
 const CATEGORY_TYPES = [
   { value: 'website', label: '🌐 网站' },

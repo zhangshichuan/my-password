@@ -1,10 +1,10 @@
 'use client'
 
-import MasterPasswordModal from '@/app/components/master-password-modal'
-import PasswordForm from '@/app/components/password-form'
-import { createPassword, getCategories, getPasswords } from '@/app/lib/api'
-import type { Category, Password } from '@/app/lib/types'
-import { useUnlockPrompt } from '@/app/lib/use-unlock-prompt'
+import MasterPasswordModal from '@/src/features/vault/components/master-password-modal'
+import PasswordForm from '@/src/features/vault/components/password-form'
+import { createPassword, getCategories, getPasswords } from '@/src/features/vault/api/client'
+import { useUnlockPrompt } from '@/src/features/vault/hooks/use-unlock-prompt'
+import type { Category, Password } from '@/src/shared/types'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 

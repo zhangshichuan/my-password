@@ -1,11 +1,11 @@
 'use client'
 
-import MasterPasswordModal from '@/app/components/master-password-modal'
-import PasswordCard from '@/app/components/password-card'
-import type { Password } from '@/app/lib/types'
-import { useUnlockAction } from '@/app/lib/use-unlock-action'
+import MasterPasswordModal from '@/src/features/vault/components/master-password-modal'
+import PasswordCard from '@/src/features/vault/components/password-card'
+import { useUnlockAction } from '@/src/features/vault/hooks/use-unlock-action'
+import { useVaultPageState } from '@/src/features/vault/hooks/use-vault-page-state'
+import type { Password } from '@/src/shared/types'
 import { useRouter } from 'next/navigation'
-import { useVaultPageState } from './use-vault-page-state'
 
 export default function VaultPage() {
   const router = useRouter()

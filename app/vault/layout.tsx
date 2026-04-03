@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCurrentUser, isAuthenticated } from '@/app/lib/auth'
-import Header from '@/app/components/header'
+import { getCurrentUser, isAuthenticated } from '@/src/features/auth/model/auth-storage'
+import Header from '@/src/features/vault/components/header'
 
 export default function VaultLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()

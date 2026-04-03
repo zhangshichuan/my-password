@@ -6,8 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/app/services/prisma'
 import { jwtVerify } from 'jose'
+import { prisma } from '@/src/server/db/prisma'
 import { validatePasswordUpdateInput } from '../validation'
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key-change-in-production')
