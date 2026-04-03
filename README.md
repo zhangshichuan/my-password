@@ -1,5 +1,203 @@
 # MyPassword
 
+> Your private password manager with end-to-end encryption
+
+[中文说明](#中文说明)
+
+## Features
+
+### Core Capabilities
+
+- **Dual-password model**: login password for server-side authentication, master password for local encryption
+- **End-to-end encryption**: the master password stays local; the server only stores ciphertext
+- **Password categories**: websites (🌐), apps (📱), locks (🔐), bank cards (💳), and others (📝)
+- **Password generator**: generate strong passwords with configurable length and character sets
+- **Search and filtering**: search by name or note, and filter by category
+
+### Security
+
+- **Zero-trust architecture**: the server stores no usable decryption key
+- **AES-256-GCM**: authenticated encryption for vault secrets
+- **PBKDF2 key derivation**: 100,000 iterations to slow brute-force attempts
+- **10-minute auto-lock**: derived master key expires and requires re-entry
+
+## Tech Stack
+
+| Category                     | Technology                           |
+| ---------------------------- | ------------------------------------ |
+| Frontend                     | React 19 + Next.js 16                |
+| Language                     | TypeScript                           |
+| Database                     | SQLite + Prisma                      |
+| Encryption                   | Web Crypto API (AES-256-GCM, PBKDF2) |
+| Server-side password hashing | Argon2id                             |
+| Styling                      | Tailwind CSS                         |
+| Testing                      | Vitest                               |
+
+## Start Here
+
+Read these documents before making changes:
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - project layers, boundaries, and placement rules
+
+## Project Structure
+
+```text
+app/
+├── api/                    # Route handlers
+├── login/                  # Login route
+├── register/               # Register route
+└── vault/                  # Vault routes
+src/
+├── features/               # Business feature code
+│   ├── auth/
+│   │   ├── api/            # Auth client requests
+│   │   ├── components/     # Auth business components
+│   │   ├── hooks/          # Auth state logic
+│   │   ├── model/          # Auth models and storage
+│   │   ├── queries/        # Auth read logic
+│   │   ├── server-actions/ # Auth server actions
+│   │   └── services/       # Auth orchestration
+│   └── vault/
+│       ├── api/            # Vault client requests
+│       ├── components/     # Vault business components
+│       ├── crypto/         # Encryption and decryption logic
+│       ├── hooks/          # Vault interaction state
+│       ├── model/          # Vault state model
+│       ├── password/       # Password generation and strength rules
+│       ├── queries/        # Vault read logic
+│       ├── server-actions/ # Vault server actions
+│       └── services/       # Vault orchestration
+├── shared/                 # Cross-feature shared code
+│   ├── api/                # Shared request utilities
+│   ├── components/         # Shared UI components
+│   ├── config/             # Shared configuration
+│   ├── constants/          # Shared constants
+│   ├── hooks/              # Shared hooks
+│   ├── types/              # Shared types
+│   └── utils/              # Shared utilities
+└── server/                 # Server-only infrastructure
+    ├── auth/               # Password hashing, JWT, etc.
+    └── db/                 # Prisma and database access
+docs/
+├── mvp/                    # MVP docs
+└── v1/                     # V1 planning
+tests/
+├── api/                    # API tests
+└── unit/                   # Unit tests
+```
+
+## Quick Start
+
+Create a `.env` file in the project root based on `.env.example`.
+
+### Install Dependencies
+
+```bash
+pnpm install
+```
+
+### Initialize the Database
+
+```bash
+pnpm db:deploy
+```
+
+### Inspect Database Data
+
+```bash
+pnpm db:studio
+```
+
+### Start the Development Server
+
+```bash
+# Use localhost instead of a local IP.
+# Web Crypto APIs used for encryption will not run in an insecure HTTP context.
+pnpm dev
+```
+
+### Run Tests
+
+```bash
+pnpm test
+pnpm test:run
+```
+
+### Run Checks
+
+```bash
+pnpm lint
+pnpm lint:tsc
+pnpm lint:eslint
+pnpm lint:prettier
+```
+
+## Security Architecture
+
+### Responsibilities of the Two Passwords
+
+| Password Type   | Purpose                         | Storage                 | Transmission       |
+| --------------- | ------------------------------- | ----------------------- | ------------------ |
+| Login password  | Authenticate the app session    | Database as Argon2 hash | Sent to the server |
+| Master password | Derive the vault decryption key | **Never stored**        | Never sent         |
+
+### Encryption Flow
+
+```text
+User enters master password + email (used as a fixed salt)
+       ↓
+PBKDF2(password, email, iterations=100000)
+       ↓
+Fixed key Ke (256 bits, used to decrypt all stored secrets)
+       ↓
+Random IV generated per password entry
+       ↓
+AES-256-GCM (Ke, IV, plaintext) → encryptedSecret
+       ↓
+Stored data: encryptedSecret + IV
+```
+
+### Decryption Flow
+
+```text
+Fetch encryptedSecret + IV from the server
+       ↓
+User enters master password + email
+       ↓
+PBKDF2(password, email, iterations=100000) → Ke
+       ↓
+AES-256-GCM-Decrypt(encryptedSecret, Ke, IV) → plaintext
+       ↓
+Show the password to the user
+```
+
+### Master Password Session
+
+- The derived `CryptoKey` is kept only in memory for the current tab
+- Nothing is written to `localStorage` or `sessionStorage`
+- It expires after 10 minutes without re-unlock
+- Refreshing the page requires the master password again
+
+### Master Password Warning
+
+> Important: if you lose the master password, the vault cannot be recovered.
+>
+> The server cannot recover it for you. Store it somewhere safe offline.
+
+## Pages
+
+| Page          | Route                  | Description                                                                          |
+| ------------- | ---------------------- | ------------------------------------------------------------------------------------ |
+| Login         | `/login`               | Sign in with email and login password                                                |
+| Register      | `/register`            | Create an account; the master password is set on first unlock                        |
+| Vault         | `/vault`               | View saved passwords; showing or copying requires unlocking with the master password |
+| Add password  | `/vault/passwords/add` | Create a new password entry                                                          |
+| Edit password | `/vault/passwords/:id` | Edit an existing password entry                                                      |
+
+---
+
+## 中文说明
+
 > 您的私人密码管理器 - 端到端加密，永不泄露
 
 ## 功能特性
@@ -39,7 +237,7 @@
 
 ## 项目结构
 
-```
+```text
 app/
 ├── api/                   # Route Handlers
 ├── login/                 # 登录页路由
@@ -86,7 +284,7 @@ tests/
 
 ## 快速开始
 
-根目录下创建 .env 文件, 参考 .env.example
+根目录下创建 `.env` 文件，参考 `.env.example`。
 
 ### 安装依赖
 
@@ -109,24 +307,24 @@ pnpm db:studio
 ### 启动开发服务器
 
 ```bash
-# 请访问 localhost 不要用本地 ip 访问, 因为加密函数不允许在不安全的 http 环境运行
+# 请访问 localhost，不要用本地 IP 访问，因为加密函数不允许在不安全的 HTTP 环境运行
 pnpm dev
 ```
 
 ### 运行测试
 
 ```bash
-pnpm test        # .watch 模式
-pnpm test:run    # 单次运行
+pnpm test
+pnpm test:run
 ```
 
 ### 代码检查
 
 ```bash
-pnpm lint        # 完整检查
-pnpm lint:tsc    # TypeScript 类型检查
-pnpm lint:eslint # ESLint 检查
-pnpm lint:prettier # Prettier 格式化
+pnpm lint
+pnpm lint:tsc
+pnpm lint:eslint
+pnpm lint:prettier
 ```
 
 ## 安全架构
@@ -140,12 +338,12 @@ pnpm lint:prettier # Prettier 格式化
 
 ### 加密流程
 
-```
+```text
 用户输入主密码 + email（作为固定盐）
        ↓
-    PBKDF2(password, email, iterations=100000)
+PBKDF2(password, email, iterations=100000)
        ↓
-    固定密钥 Ke (256 bits，用于解密所有密码)
+固定密钥 Ke (256 bits，用于解密所有密码)
        ↓
 随机生成 IV (每条密码不同)
        ↓
@@ -156,7 +354,7 @@ AES-256-GCM (Ke, IV, 明文) → encryptedSecret
 
 ### 解密流程
 
-```
+```text
 从服务器获取: encryptedSecret + IV
        ↓
 用户输入主密码 + email
@@ -190,5 +388,3 @@ AES-256-GCM-Decrypt(encryptedSecret, Ke, IV) → 明文密码
 | 密码库   | `/vault`               | 查看所有密码，点击显示/复制时需输入主密码解锁 |
 | 添加密码 | `/vault/passwords/add` | 添加新密码                                    |
 | 编辑密码 | `/vault/passwords/:id` | 编辑已有密码                                  |
-
----
