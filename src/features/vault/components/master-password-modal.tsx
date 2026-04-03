@@ -4,7 +4,7 @@
  * 主密码解锁弹窗组件
  * 组件自身只关心表单输入和反馈，具体校验逻辑委托给 resolveMasterKey。
  */
-import { getCurrentUser } from '@/src/features/auth/model/auth-storage'
+import { getCurrentUser } from '@/src/features/auth'
 import { resolveMasterKey } from '@/src/features/vault/crypto/encryption'
 import type { Password } from '@/src/shared/types'
 import { useEffect, useState } from 'react'

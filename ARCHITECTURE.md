@@ -73,6 +73,27 @@ tests/
 
 如果代码明显只服务某一个业务能力，就优先放进对应 feature。
 
+### Feature Public API
+
+如果某个 feature 提供了 `index.ts`，这个文件就是该 feature 的公共入口（public API）。
+
+约定：
+
+- 页面层默认通过 `@/src/features/<feature>` 使用该 feature
+- 其他 feature 默认也通过 `@/src/features/<feature>` 使用它
+- `index.ts` 只导出稳定、明确希望对外暴露的能力
+- feature 内部实现细节默认不通过 `index.ts` 暴露
+
+这是一条架构约定，不是当前阶段的强制 lint 规则。
+
+因此：
+
+- 允许在 feature 内部继续深层 import 自己的实现文件
+- 不推荐页面层和其他 feature 深层 import `features/<feature>/*`
+
+例如 `src/features/auth/index.ts` 暴露 `login`、`register`、`isAuthenticated`、`logout` 等公共能力；
+而 `decodeJWT`、`setToken`、`setCurrentUser` 这类实现细节继续留在内部模块中。
+
 ### `src/shared`
 
 `shared` 只收跨业务复用代码。

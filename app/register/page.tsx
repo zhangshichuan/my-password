@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRegisterPage } from '@/src/features/auth/hooks/use-register-page'
+import { useRegisterPage } from '@/src/features/auth'
 
 export default function RegisterPage() {
   const {

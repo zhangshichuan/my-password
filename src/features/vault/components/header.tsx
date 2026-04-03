@@ -6,7 +6,7 @@
  */
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { logout } from '@/src/features/auth/model/auth-storage'
+import { logout } from '@/src/features/auth'
 import { useMasterKey } from '@/src/features/vault/hooks/use-master-key'
 import type { JWTPayload } from '@/src/shared/types'
 

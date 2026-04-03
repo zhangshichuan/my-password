@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useLoginPage } from '@/src/features/auth/hooks/use-login-page'
+import { useLoginPage } from '@/src/features/auth'
 
 export default function LoginPage() {
   const { email, error, handleSubmit, loading, password, setEmail, setPassword } = useLoginPage()

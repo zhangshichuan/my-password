@@ -1,6 +1,6 @@
 'use client'
 
-import { isAuthenticated } from '@/src/features/auth/model/auth-storage'
+import { isAuthenticated } from '@/src/features/auth'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
