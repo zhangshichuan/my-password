@@ -5,6 +5,7 @@
  * 用于添加/编辑密码，包含密码生成器
  */
 import { encryptSecret } from '@/src/features/vault/crypto/encryption'
+import { getUiErrorMessage } from '@/src/features/vault/utils/ui-feedback'
 import type { Category, Password } from '@/src/shared/types'
 import { useEffect, useState } from 'react'
 import PasswordGenerator from '@/src/features/vault/components/password-generator'
@@ -82,7 +83,7 @@ export default function PasswordForm({ categories, password, masterKey, onSubmit
         categoryId,
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : '保存失败')
+      setError(getUiErrorMessage(err, '保存失败，请稍后重试。'))
     } finally {
       setLoading(false)
     }
@@ -155,6 +156,8 @@ export default function PasswordForm({ categories, password, masterKey, onSubmit
         />
       </div>
 
+      {categories.length === 0 && <p className="text-sm text-amber-600">当前没有分类，暂时无法保存密码。</p>}
+
       {/* 错误提示 */}
       {error && <p className="text-sm text-red-500">{error}</p>}
 
@@ -169,7 +172,7 @@ export default function PasswordForm({ categories, password, masterKey, onSubmit
         </button>
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || categories.length === 0}
           className="flex-1 rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
           {loading ? '保存中...' : '保存'}

@@ -1,5 +1,6 @@
 'use client'
 
+import VaultFeedback from '@/src/features/vault/components/vault-feedback'
 import { useCategoriesPage } from '@/src/features/vault/hooks/use-categories-page'
 import type { Category } from '@/src/shared/types'
 
@@ -13,6 +14,7 @@ const CATEGORY_TYPES = [
 
 export default function CategoriesPage() {
   const {
+    actionError,
     categories,
     editingCategory,
     error,
@@ -21,11 +23,14 @@ export default function CategoriesPage() {
     handleEdit,
     handleSubmit,
     loading,
+    loadingError,
     name,
     openCreateForm,
+    retryLoad,
     setName,
     setType,
     showForm,
+    submitting,
     type,
   } = useCategoriesPage()
 
@@ -42,6 +47,8 @@ export default function CategoriesPage() {
           </button>
         )}
       </div>
+
+      {actionError && <VaultFeedback variant="error" title="操作未完成" description={actionError} />}
 
       {showForm && (
         <form
@@ -85,9 +92,10 @@ export default function CategoriesPage() {
               </button>
               <button
                 type="submit"
+                disabled={submitting}
                 className="flex-1 rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
-                保存
+                {submitting ? '保存中...' : '保存'}
               </button>
             </div>
           </div>
@@ -95,11 +103,23 @@ export default function CategoriesPage() {
       )}
 
       {loading ? (
-        <p className="text-center text-zinc-500">加载中...</p>
+        <VaultFeedback title="正在加载分类" description="分类列表马上就绪。" />
+      ) : loadingError ? (
+        <VaultFeedback
+          variant="error"
+          title="分类列表加载失败"
+          description={loadingError}
+          action={
+            <button
+              onClick={retryLoad}
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              重新加载
+            </button>
+          }
+        />
       ) : categories.length === 0 ? (
-        <div className="rounded-lg border border-zinc-200 py-8 text-center dark:border-zinc-700">
-          <p className="text-zinc-500">暂无分类</p>
-        </div>
+        <VaultFeedback title="还没有分类" description="先创建一个分类，后续添加密码时就可以直接选择。" />
       ) : (
         <div className="space-y-2">
           {categories.map((category) => (

@@ -24,6 +24,7 @@ export default function PasswordCard({ password, onEdit, onDelete }: PasswordCar
     busy,
     copied,
     decryptedSecret,
+    error,
     handleCopy,
     handleReveal,
     handleUnlockClose,
@@ -96,6 +97,8 @@ export default function PasswordCard({ password, onEdit, onDelete }: PasswordCar
             {busy ? '处理中...' : copied ? '已复制' : '复制'}
           </button>
         </div>
+
+        {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
       </div>
 
       {/* 主密码解锁弹窗 */}

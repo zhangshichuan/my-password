@@ -1,8 +1,10 @@
 'use client'
 
 import { createCategory, deleteCategory, getCategories, updateCategory } from '@/src/features/vault/api/client'
+import { useAsyncStatus } from '@/src/features/vault/hooks/use-async-status'
+import { getUiErrorMessage, logUiError } from '@/src/features/vault/utils/ui-feedback'
 import type { Category } from '@/src/shared/types'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 /**
  * 分类管理页状态 hook。
@@ -10,54 +12,69 @@ import { useEffect, useState } from 'react'
  */
 export function useCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [name, setName] = useState('')
   const [type, setType] = useState<Category['type']>('website')
   const [error, setError] = useState('')
+  const [actionError, setActionError] = useState('')
+  const { error: loadingError, loading, run: runLoadTask } = useAsyncStatus(true)
+  const { loading: submitting, run: runSubmitTask } = useAsyncStatus(false)
 
   // 首次进入页面时加载所有分类。
-  async function loadCategories() {
-    try {
-      const nextCategories = await getCategories()
-      setCategories(nextCategories)
-    } catch (err) {
-      console.error('加载分类失败', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const loadCategories = useCallback(async () => {
+    await runLoadTask(getCategories, {
+      errorMessage: '分类列表加载失败，请稍后重试。',
+      logScope: '加载分类页失败',
+      onSuccess: (nextCategories) => {
+        setCategories(nextCategories)
+      },
+    })
+  }, [runLoadTask])
 
   useEffect(() => {
-    loadCategories()
-  }, [])
+    void loadCategories()
+  }, [loadCategories])
 
   // 新增和编辑共用一套表单提交流程。
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    setActionError('')
 
     if (!name.trim()) {
       setError('请输入分类名称')
       return
     }
 
-    try {
-      if (editingCategory) {
-        await updateCategory(editingCategory.id, { name: name.trim(), type })
-        setEditingCategory(null)
-      } else {
-        await createCategory({ name: name.trim(), type })
-      }
+    const result = await runSubmitTask(
+      async () => {
+        if (editingCategory) {
+          await updateCategory(editingCategory.id, { name: name.trim(), type })
+          return 'updated' as const
+        }
 
-      setName('')
-      setType('website')
-      setShowForm(false)
-      await loadCategories()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '保存失败')
+        await createCategory({ name: name.trim(), type })
+        return 'created' as const
+      },
+      {
+        errorMessage: '保存分类失败，请稍后重试。',
+        logScope: '保存分类失败',
+        onError: (err) => {
+          setError(getUiErrorMessage(err, '保存分类失败，请稍后重试。'))
+        },
+      },
+    )
+
+    if (!result) {
+      return
     }
+
+    setEditingCategory(null)
+    setName('')
+    setType('website')
+    setShowForm(false)
+    await loadCategories()
   }
 
   // 把当前分类带入表单，切换到编辑模式。
@@ -72,11 +89,14 @@ export function useCategoriesPage() {
   async function handleDelete(id: string) {
     if (!confirm('确定要删除这个分类吗？')) return
 
+    setActionError('')
+
     try {
       await deleteCategory(id)
       await loadCategories()
-    } catch {
-      alert('删除失败')
+    } catch (error) {
+      logUiError('删除分类失败', error)
+      setActionError(getUiErrorMessage(error, '删除分类失败，请稍后重试。'))
     }
   }
 
@@ -94,6 +114,7 @@ export function useCategoriesPage() {
   }
 
   return {
+    actionError,
     categories,
     editingCategory,
     error,
@@ -102,11 +123,14 @@ export function useCategoriesPage() {
     handleEdit,
     handleSubmit,
     loading,
+    loadingError,
     name,
     openCreateForm,
+    retryLoad: loadCategories,
     setName,
     setType,
     showForm,
+    submitting,
     type,
   }
 }

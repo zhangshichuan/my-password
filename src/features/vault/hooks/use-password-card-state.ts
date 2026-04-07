@@ -5,6 +5,7 @@ import type { Password } from '@/src/shared/types'
 import { decryptSecret } from '@/src/features/vault/crypto/encryption'
 import { useMasterKey } from '@/src/features/vault/hooks/use-master-key'
 import { useUnlockAction } from '@/src/features/vault/hooks/use-unlock-action'
+import { getUiErrorMessage, logUiError } from '@/src/features/vault/utils/ui-feedback'
 
 type PendingAction = 'reveal' | 'copy' | null
 
@@ -19,6 +20,7 @@ export function usePasswordCardState(password: Password) {
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
   const [activeAction, setActiveAction] = useState<PendingAction>(null)
+  const [error, setError] = useState('')
 
   // 列表项切换后，重置上一条密码留下的本地展示状态。
   useEffect(() => {
@@ -27,6 +29,7 @@ export function usePasswordCardState(password: Password) {
     setCopied(false)
     setBusy(false)
     setActiveAction(null)
+    setError('')
   }, [password.encryptedSecret, password.id, password.iv])
 
   // 优先复用已经解密过的结果，避免重复调用 Web Crypto。
@@ -66,6 +69,8 @@ export function usePasswordCardState(password: Password) {
   })
 
   async function handleReveal() {
+    setError('')
+
     if (showSecret) {
       setShowSecret(false)
       return
@@ -83,14 +88,16 @@ export function usePasswordCardState(password: Password) {
       }
 
       setShowSecret(true)
-    } catch {
-      console.error('解密失败')
+    } catch (error) {
+      logUiError('卡片解密失败', error)
+      setError(getUiErrorMessage(error, '显示失败，请重新输入主密码后再试。'))
     } finally {
       setBusy(false)
     }
   }
 
   async function handleCopy() {
+    setError('')
     setBusy(true)
 
     try {
@@ -104,8 +111,9 @@ export function usePasswordCardState(password: Password) {
 
       await navigator.clipboard.writeText(secret)
       markCopied()
-    } catch {
-      console.error('复制失败')
+    } catch (error) {
+      logUiError('卡片复制失败', error)
+      setError(getUiErrorMessage(error, '复制失败，请稍后重试。'))
     } finally {
       setBusy(false)
     }
@@ -126,6 +134,7 @@ export function usePasswordCardState(password: Password) {
     busy,
     copied,
     decryptedSecret,
+    error,
     handleCopy,
     handleReveal,
     handleUnlockClose,

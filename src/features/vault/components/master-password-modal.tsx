@@ -6,6 +6,7 @@
  */
 import { getCurrentUser } from '@/src/features/auth'
 import { resolveMasterKey } from '@/src/features/vault/crypto/encryption'
+import VaultFeedback from '@/src/features/vault/components/vault-feedback'
 import type { Password } from '@/src/shared/types'
 import { useEffect, useState } from 'react'
 
@@ -123,10 +124,10 @@ export default function MasterPasswordModal({
           </div>
 
           {/* 错误提示 */}
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <VaultFeedback compact variant="error" title={error} />}
 
           {/* 成功提示 */}
-          {success && <p className="text-sm text-green-500">{successMessage}</p>}
+          {success && <VaultFeedback compact variant="success" title={successMessage} />}
 
           {/* 操作按钮 */}
           <div className="flex gap-2">
