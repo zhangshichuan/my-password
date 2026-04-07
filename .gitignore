@@ -44,5 +44,4 @@ next-env.d.ts
 
 generated
 *.db
-
 .codex
